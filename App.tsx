@@ -3,8 +3,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Font from 'expo-font';
-import { PlayfairDisplay_400Regular, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
-import { Lato_400Regular, Lato_700Bold } from '@expo-google-fonts/lato';
+import { NotoSerif_400Regular, NotoSerif_700Bold } from '@expo-google-fonts/noto-serif';
+import { NotoSans_400Regular, NotoSans_500Medium, NotoSans_600SemiBold } from '@expo-google-fonts/noto-sans';
 import AppNavigator from './src/navigation/AppNavigator';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -19,10 +19,11 @@ export default function App() {
       try {
         // Pre-load fonts
         await Font.loadAsync({
-          PlayfairDisplay_400Regular,
-          PlayfairDisplay_700Bold,
-          Lato_400Regular,
-          Lato_700Bold,
+          NotoSerif_400Regular,
+          NotoSerif_700Bold,
+          NotoSans_400Regular,
+          NotoSans_500Medium,
+          NotoSans_600SemiBold,
         });
       } catch (e) {
         console.warn(e);

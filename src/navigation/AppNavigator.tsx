@@ -1,8 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import NameScreen from '../screens/Onboarding/NameScreen';
-import DateScreen from '../screens/Onboarding/DateScreen';
+import WelcomeScreen from '../screens/Onboarding/WelcomeScreen';
 import CountdownScreen from '../screens/Home/CountdownScreen';
 import ImageUploadScreen from '../screens/Onboarding/ImageUploadScreen';
 import StyleSelectionScreen from '../screens/Onboarding/StyleSelectionScreen';
@@ -24,10 +23,9 @@ export default function AppNavigator() {
         <NavigationContainer>
             <Stack.Navigator
                 screenOptions={{ headerShown: false }}
-                initialRouteName={isOnboardingCompleted ? 'Countdown' : 'Name'}
+                initialRouteName={isOnboardingCompleted ? 'Countdown' : 'Welcome'}
             >
-                <Stack.Screen name="Name" component={NameScreen} />
-                <Stack.Screen name="Date" component={DateScreen} />
+                <Stack.Screen name="Welcome" component={WelcomeScreen} />
                 <Stack.Screen name="ImageUpload" component={ImageUploadScreen} />
                 <Stack.Screen name="StyleSelection" component={StyleSelectionScreen} />
                 <Stack.Screen name="Questionnaire" component={QuestionnaireScreen} />
