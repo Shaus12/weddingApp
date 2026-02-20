@@ -1,9 +1,10 @@
 export const COLORS = {
-  primary: '#F5F5DC', // Beige
-  background: '#FAF9F6', // Off-white
-  text: '#4A4A4A', // Charcoal
+  primary: '#FFE4E1', // Misty Rose, a warm pastel
+  background: '#FFF5F5', // Soft warm blush
+  text: '#4A4A4A', // Kept charcoal for readability
   textLight: '#8A8A8A',
   white: '#FFFFFF',
+  accent: '#FF8C94', // A warm coral/pink accent
   gold: '#D4AF37', // A classic gold for accents
   error: '#FF6B6B',
 };

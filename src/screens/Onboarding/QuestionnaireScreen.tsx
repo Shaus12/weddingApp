@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingVi
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import { useUserStore } from '../../store/useUserStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function QuestionnaireScreen({ navigation }: any) {
     const { setStoryDetails, story, adjectives } = useUserStore();
@@ -14,14 +15,23 @@ export default function QuestionnaireScreen({ navigation }: any) {
         navigation.navigate('Magic');
     };
 
+    const handleSkip = () => {
+        // Just navigate without setting story details
+        navigation.navigate('Magic');
+    };
+
     return (
         <SafeAreaView style={styles.container}>
+            <LinearGradient
+                colors={['#FFF0F5', '#FFE4E1']}
+                style={StyleSheet.absoluteFillObject}
+            />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{ flex: 1 }}
             >
                 <ScrollView contentContainerStyle={styles.content}>
-                    <Text style={styles.title}>Your Story</Text>
+                    <Text style={styles.title}>Your Story 📖</Text>
                     <Text style={styles.subtitle}>Help us create the perfect content for you.</Text>
 
                     <View style={styles.inputContainer}>
@@ -55,6 +65,13 @@ export default function QuestionnaireScreen({ navigation }: any) {
                     >
                         <Text style={styles.buttonText}>Create Magic ✨</Text>
                     </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.skipButton}
+                        onPress={handleSkip}
+                    >
+                        <Text style={styles.skipButtonText}>Skip for now</Text>
+                    </TouchableOpacity>
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -64,7 +81,7 @@ export default function QuestionnaireScreen({ navigation }: any) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        // backgroundColor: COLORS.background, handled by LinearGradient
     },
     content: {
         padding: SPACING.l,
@@ -94,27 +111,32 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.xs,
     },
     input: {
-        backgroundColor: COLORS.white,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
         padding: SPACING.m,
-        borderRadius: SPACING.s,
+        borderRadius: 20,
         fontFamily: FONTS.sans,
         fontSize: 16,
         color: COLORS.text,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 2,
+        shadowColor: '#FF8C94',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
     },
     textArea: {
         height: 120,
     },
     button: {
-        backgroundColor: COLORS.text,
+        backgroundColor: COLORS.accent || '#FF8C94',
         padding: SPACING.m,
-        borderRadius: SPACING.s,
+        borderRadius: 30,
         alignItems: 'center',
         marginTop: SPACING.m,
+        shadowColor: COLORS.accent || '#FF8C94',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
     },
     buttonDisabled: {
         backgroundColor: COLORS.textLight,
@@ -123,5 +145,16 @@ const styles = StyleSheet.create({
         color: COLORS.white,
         fontFamily: FONTS.sansBold,
         fontSize: 16,
+    },
+    skipButton: {
+        padding: SPACING.m,
+        alignItems: 'center',
+        marginTop: SPACING.s,
+    },
+    skipButtonText: {
+        color: COLORS.textLight,
+        fontFamily: FONTS.sans,
+        fontSize: 14,
+        textDecorationLine: 'underline',
     },
 });

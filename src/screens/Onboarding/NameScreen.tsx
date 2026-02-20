@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import { useUserStore } from '../../store/useUserStore';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function NameScreen({ navigation }: any) {
@@ -18,32 +19,36 @@ export default function NameScreen({ navigation }: any) {
 
     return (
         <SafeAreaView style={styles.container}>
+            <LinearGradient
+                colors={['#FFF0F5', '#FFE4E1']}
+                style={StyleSheet.absoluteFillObject}
+            />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardView}
             >
-                <Text style={styles.title}>Welcome to Eternal Glow</Text>
-                <Text style={styles.subtitle}>Who are the happy couple?</Text>
+                <Text style={styles.title}>Welcome to Eternal Glow ✨</Text>
+                <Text style={styles.subtitle}>Who are the happy couple? 💕</Text>
 
-                <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Partner 1</Text>
+                <View style={styles.inputsWrapper}>
                     <TextInput
-                        style={styles.input}
-                        placeholder="Name"
+                        style={styles.stylizedInput}
+                        placeholder="Your Name"
                         value={p1}
                         onChangeText={setP1}
                         placeholderTextColor={COLORS.textLight}
+                        textAlign="center"
                     />
-                </View>
 
-                <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Partner 2</Text>
+                    <Text style={styles.ampersand}>&</Text>
+
                     <TextInput
-                        style={styles.input}
-                        placeholder="Name"
+                        style={styles.stylizedInput}
+                        placeholder="Their Name"
                         value={p2}
                         onChangeText={setP2}
                         placeholderTextColor={COLORS.textLight}
+                        textAlign="center"
                     />
                 </View>
 
@@ -62,7 +67,7 @@ export default function NameScreen({ navigation }: any) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        // Background color handled by LinearGradient
     },
     keyboardView: {
         flex: 1,
@@ -83,34 +88,36 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.xxl,
         textAlign: 'center',
     },
-    inputContainer: {
-        marginBottom: SPACING.l,
+    inputsWrapper: {
+        alignItems: 'center',
+        marginVertical: SPACING.xl,
     },
-    label: {
-        fontFamily: FONTS.sansBold,
-        fontSize: 14,
+    stylizedInput: {
+        fontFamily: FONTS.serifBold,
+        fontSize: 32,
         color: COLORS.text,
-        marginBottom: SPACING.xs,
+        borderBottomWidth: 2,
+        borderBottomColor: 'rgba(255, 140, 148, 0.5)',
+        paddingVertical: SPACING.s,
+        minWidth: '80%',
     },
-    input: {
-        backgroundColor: COLORS.white,
-        padding: SPACING.m,
-        borderRadius: SPACING.s,
-        fontFamily: FONTS.sans,
-        fontSize: 16,
-        color: COLORS.text,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 2,
+    ampersand: {
+        fontFamily: 'DancingScript_700Bold', // Using one of the new elegant fonts
+        fontSize: 48,
+        color: COLORS.accent || '#FF8C94',
+        marginVertical: SPACING.m,
     },
     button: {
-        backgroundColor: COLORS.text,
+        backgroundColor: COLORS.accent || '#FF8C94',
         padding: SPACING.m,
-        borderRadius: SPACING.s,
+        borderRadius: 30,
         alignItems: 'center',
         marginTop: SPACING.xl,
+        shadowColor: COLORS.accent || '#FF8C94',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
     },
     buttonDisabled: {
         backgroundColor: COLORS.textLight,

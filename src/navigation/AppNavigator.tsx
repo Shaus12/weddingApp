@@ -13,6 +13,8 @@ import GalleryScreen from '../screens/Home/GalleryScreen';
 import LetterGeneratorScreen from '../screens/Home/LetterGeneratorScreen';
 import PaywallScreen from '../screens/Paywall/PaywallScreen';
 import RemindersScreen from '../screens/Home/RemindersScreen';
+import OptionsScreen from '../screens/Home/OptionsScreen';
+import DailyTipsScreen from '../screens/Home/DailyTipsScreen';
 import { useUserStore } from '../store/useUserStore';
 
 const Stack = createNativeStackNavigator();
@@ -38,6 +40,16 @@ export default function AppNavigator() {
                 <Stack.Screen name="Gallery" component={GalleryScreen} />
                 <Stack.Screen name="LetterGenerator" component={LetterGeneratorScreen} />
                 <Stack.Screen name="Reminders" component={RemindersScreen} />
+                <Stack.Screen
+                    name="Options"
+                    component={OptionsScreen}
+                    options={{ animation: 'slide_from_left' }}
+                />
+                <Stack.Screen
+                    name="DailyTips"
+                    component={DailyTipsScreen}
+                    options={{ animation: 'slide_from_right' }}
+                />
             </Stack.Navigator>
         </NavigationContainer>
     );

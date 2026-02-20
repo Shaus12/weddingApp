@@ -4,6 +4,7 @@ import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import { useUserStore } from '../../store/useUserStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function DateScreen({ navigation }: any) {
     const { setWeddingDate, weddingDate } = useUserStore();
@@ -23,9 +24,13 @@ export default function DateScreen({ navigation }: any) {
 
     return (
         <SafeAreaView style={styles.container}>
+            <LinearGradient
+                colors={['#FFF0F5', '#FFE4E1']}
+                style={StyleSheet.absoluteFillObject}
+            />
             <View style={styles.content}>
-                <Text style={styles.title}>Save the Date</Text>
-                <Text style={styles.subtitle}>When will the magic happen?</Text>
+                <Text style={styles.title}>Save the Date ✨</Text>
+                <Text style={styles.subtitle}>When will the magic happen? 🗓️</Text>
 
                 <View style={styles.pickerContainer}>
                     {Platform.OS === 'android' && (
@@ -59,7 +64,7 @@ export default function DateScreen({ navigation }: any) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        // backgroundColor: COLORS.background, handled by LinearGradient
     },
     content: {
         flex: 1,
@@ -87,11 +92,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     dateButton: {
-        backgroundColor: COLORS.white,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
         padding: SPACING.m,
-        borderRadius: SPACING.s,
+        borderRadius: 20,
         width: '100%',
         alignItems: 'center',
+        shadowColor: '#FF8C94',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
     },
     dateButtonText: {
         fontFamily: FONTS.sans,
@@ -99,12 +109,17 @@ const styles = StyleSheet.create({
         color: COLORS.text,
     },
     button: {
-        backgroundColor: COLORS.text,
+        backgroundColor: COLORS.accent || '#FF8C94',
         padding: SPACING.m,
-        borderRadius: SPACING.s,
+        borderRadius: 30,
         alignItems: 'center',
         width: '100%',
         marginTop: SPACING.m,
+        shadowColor: COLORS.accent || '#FF8C94',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
     },
     buttonText: {
         color: COLORS.white,
