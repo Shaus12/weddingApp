@@ -7,6 +7,7 @@ import { NotoSerif_400Regular, NotoSerif_700Bold } from '@expo-google-fonts/noto
 import { NotoSans_400Regular, NotoSans_500Medium, NotoSans_600SemiBold } from '@expo-google-fonts/noto-sans';
 import AppNavigator from './src/navigation/AppNavigator';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useUserStore } from './src/store/useUserStore';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();

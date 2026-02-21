@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import { useUserStore } from '../../store/useUserStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function MagicScreen({ navigation }: any) {
     const { completeOnboarding } = useUserStore();
@@ -22,10 +23,17 @@ export default function MagicScreen({ navigation }: any) {
 
     return (
         <SafeAreaView style={styles.container}>
+            <LinearGradient
+                colors={['#FFF0F5', '#FFE4E1']}
+                style={StyleSheet.absoluteFillObject}
+            />
             <View style={styles.content}>
-                <Text style={styles.title}>Creating Your Magic...</Text>
+                <Text style={styles.title}>Creating Your Magic... ✨</Text>
                 <Text style={styles.subtitle}>We are weaving your story into art.</Text>
-                <ActivityIndicator size="large" color={COLORS.gold} style={styles.loader} />
+                <View style={styles.loaderContainer}>
+                    <Text style={styles.magicIcon}>💖</Text>
+                    <ActivityIndicator size="large" color={COLORS.accent || '#FF8C94'} style={styles.loader} />
+                </View>
             </View>
         </SafeAreaView>
     );
@@ -34,7 +42,7 @@ export default function MagicScreen({ navigation }: any) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        // backgroundColor: COLORS.background, handled by LinearGradient
     },
     content: {
         flex: 1,
@@ -56,8 +64,16 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.xxl,
         textAlign: 'center',
     },
-    loader: {
+    loaderContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
         marginTop: SPACING.xl,
+    },
+    magicIcon: {
+        fontSize: 60,
+        marginBottom: SPACING.l,
+    },
+    loader: {
         transform: [{ scale: 1.5 }],
     },
 });
