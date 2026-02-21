@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, StatusBar, Animated, PanResponder, DimensionValue } from 'react-native';
+import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, StatusBar, Animated, PanResponder, DimensionValue, Alert } from 'react-native';
 import ShareBottomSheet from '../../components/ShareBottomSheet';
+import LoadingOverlay from '../../components/LoadingOverlay';
 import { COLORS, FONTS, SPACING, SHADOWS } from '../../constants/theme';
 import { useUserStore } from '../../store/useUserStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,21 +21,109 @@ const DAILY_SENTENCES = [
 ];
 
 export default function CountdownScreen({ navigation }: any) {
-    const { partner1Name, partner2Name, weddingDate, baseImage, style, countdownPosition, dailySentenceEnabled } = useUserStore();
+    const {
+        partner1Name, partner2Name, weddingDate, baseImage, style,
+        countdownPosition, dailySentenceEnabled,
+        isTrialActive, isPremium, dailyImageUrl, lastDailyImageDate, setDailyImage,
+        hasRecreatedToday, lastRecreatedDate, setHasRecreatedToday
+    } = useUserStore();
 
     const [overlayVisible, setOverlayVisible] = useState(false);
     const [shareSheetVisible, setShareSheetVisible] = useState(false);
-    const overlayVisibleRef = useRef(false); // Ref to avoid stale closure in PanResponder
+    const [isGenerating, setIsGenerating] = useState(false);
+    const overlayVisibleRef = useRef(false);
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
-    // One-shot pulse on mount
+    const hasAccess = isTrialActive || isPremium;
+    const todayStr = new Date().toISOString().split('T')[0];
+
     useEffect(() => {
         Animated.sequence([
             Animated.timing(pulseAnim, { toValue: 1.03, duration: 300, useNativeDriver: true }),
             Animated.timing(pulseAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
         ]).start();
     }, []);
+
+    useEffect(() => {
+        const fetchDailyImage = async () => {
+            if (!hasAccess) return;
+
+            // Check if we already have today's image
+            if (lastDailyImageDate === todayStr && dailyImageUrl) {
+                return;
+            }
+
+            setIsGenerating(true);
+            try {
+                // In a real scenario, this points to your secure Supabase/Edge function
+                const response = await fetch('https://cwnnjhcivkqnqgpmnitj.supabase.co/functions/v1/generate-daily-image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        partner1: partner1Name,
+                        partner2: partner2Name,
+                        styleInfo: style,
+                        baseImage: baseImage, // Send baseImage to Edge Function for Image-to-Image inference
+                    }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.imageUrl) {
+                        setDailyImage(data.imageUrl, todayStr);
+                    }
+                } else {
+                    console.warn("Edge function not configured or failed");
+                }
+            } catch (error) {
+                console.warn("Failed to fetch daily AI image:", error);
+            } finally {
+                setIsGenerating(false);
+            }
+        };
+
+        fetchDailyImage();
+    }, [hasAccess, lastDailyImageDate, todayStr, setDailyImage, partner1Name, partner2Name, style, baseImage]);
+
+    const handleRecreateImage = async () => {
+        if (!hasAccess) return;
+        if (hasRecreatedToday && lastRecreatedDate === todayStr) {
+            Alert.alert("Limit Reached", "You can only recreate the daily image once per day!");
+            return;
+        }
+
+        setIsGenerating(true);
+        try {
+            const response = await fetch('https://cwnnjhcivkqnqgpmnitj.supabase.co/functions/v1/generate-daily-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    partner1: partner1Name,
+                    partner2: partner2Name,
+                    styleInfo: style,
+                    baseImage: baseImage,
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.imageUrl) {
+                    setDailyImage(data.imageUrl, todayStr);
+                    setHasRecreatedToday(true, todayStr);
+                    Alert.alert("Success", "Your image has been recreated!");
+                }
+            } else {
+                Alert.alert("Error", "Could not recreate image at this time.");
+            }
+        } catch (error) {
+            Alert.alert("Error", "Could not recreate image at this time.");
+        } finally {
+            setIsGenerating(false);
+        }
+    };
 
     const showOverlay = () => {
         setOverlayVisible(true);
@@ -63,28 +152,6 @@ export default function CountdownScreen({ navigation }: any) {
         }
     };
 
-    const panResponder = useRef(
-        PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            // Only set responder for moves if it's distinctly horizontal
-            onMoveShouldSetPanResponder: (evt, gestureState) => {
-                return Math.abs(gestureState.dx) > 10;
-            },
-            onPanResponderRelease: (evt, gestureState) => {
-                const { dx, dy, vx } = gestureState;
-                if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-                    handleTap();
-                } else if (dx > 40 && vx > 0.3) {
-                    // Swipe Right -> Options
-                    navigation.navigate('Options');
-                } else if (dx < -40 && vx < -0.3) {
-                    // Swipe Left -> Daily Tips
-                    navigation.navigate('DailyTips');
-                }
-            }
-        })
-    ).current;
-
     const calculateDaysLeft = () => {
         if (!weddingDate) return 0;
         const today = new Date();
@@ -96,102 +163,75 @@ export default function CountdownScreen({ navigation }: any) {
 
     const daysLeft = calculateDaysLeft();
 
-
-    // Map themes to Specific styles
     const getThemeStyles = () => {
         switch (style) {
             case 'Boho-Chic':
-                return {
-                    nameFont: 'DancingScript_700Bold',
-                    numberFont: 'CormorantGaramond_700Bold',
-                    labelFont: 'Montserrat_400Regular',
-                    textShadow: false,
-                };
+                return { nameFont: 'DancingScript_700Bold', numberFont: 'CormorantGaramond_700Bold', labelFont: 'Montserrat_400Regular', textShadow: false };
             case 'Modern Minimal':
-                return {
-                    nameFont: 'Montserrat_400Regular',
-                    numberFont: 'Montserrat_700Bold',
-                    labelFont: 'Montserrat_400Regular',
-                    textShadow: false,
-                };
+                return { nameFont: 'Montserrat_400Regular', numberFont: 'Montserrat_700Bold', labelFont: 'Montserrat_400Regular', textShadow: false };
             case 'Vintage':
-                return {
-                    nameFont: 'CormorantGaramond_700Bold',
-                    numberFont: 'PlayfairDisplay_700Bold',
-                    labelFont: 'CormorantGaramond_400Regular',
-                    textShadow: true,
-                };
+                return { nameFont: 'CormorantGaramond_700Bold', numberFont: 'PlayfairDisplay_700Bold', labelFont: 'CormorantGaramond_400Regular', textShadow: true };
             case 'Classic Royal':
             default:
-                return {
-                    nameFont: FONTS.serifBold,
-                    numberFont: FONTS.serifBold,
-                    labelFont: FONTS.sans,
-                    textShadow: true,
-                };
+                return { nameFont: FONTS.displayBold, numberFont: FONTS.displayBold, labelFont: FONTS.sans, textShadow: true };
         }
     };
 
     const themeStyles = getThemeStyles();
-
-    // Calculate a daily index that changes every 24 hours
     const todayIndex = Math.floor(Date.now() / 86400000) % DAILY_SENTENCES.length;
     const todaySentence = DAILY_SENTENCES[todayIndex];
-
-    // Fix daily sentence to the bottom as requested
     const sentencePositionStyles = { bottom: '5%' as DimensionValue };
+
+    // Determine what image to show
+    let displayImage = require('../../../assets/splash-icon.png');
+    if (hasAccess && dailyImageUrl) {
+        displayImage = { uri: dailyImageUrl };
+    } else if (baseImage) {
+        displayImage = { uri: baseImage };
+    }
 
     return (
         <>
-            <View style={styles.container} {...panResponder.panHandlers}>
+            <TouchableOpacity style={styles.container} activeOpacity={1} onPress={handleTap}>
                 <StatusBar barStyle="light-content" />
                 <ImageBackground
-                    source={baseImage ? { uri: baseImage } : require('../../../assets/splash-icon.png')}
+                    source={displayImage}
                     style={styles.backgroundImage}
                     resizeMode="cover"
+                    blurRadius={!hasAccess ? 0 : 0} // Could blur if no access, but let's just use baseImage
                 >
                     <LinearGradient
                         colors={['rgba(0,0,0,0.4)', 'transparent', 'transparent', 'rgba(0,0,0,0.55)']}
                         locations={[0, 0.3, 0.65, 1]}
                         style={styles.gradient}
                     >
-                        <SafeAreaView style={styles.content}>
+                        <SafeAreaView style={styles.content} pointerEvents="box-none">
                             <View style={styles.header}>
-                                <Text style={[
-                                    styles.names,
-                                    { fontFamily: themeStyles.nameFont },
-                                    !themeStyles.textShadow && styles.noTextShadow
-                                ]}>
+                                <Text style={[styles.names, { fontFamily: themeStyles.nameFont }, !themeStyles.textShadow && styles.noTextShadow]}>
                                     {partner1Name} & {partner2Name}
                                 </Text>
                             </View>
 
-                            {/* Position countdown using absolute positioning based on selected percentage */}
-                            <View style={[styles.countdownWrapper, { bottom: `${countdownPosition}%` }]}>
+                            <View style={[styles.countdownWrapper, { bottom: `${countdownPosition}%` }]} pointerEvents="none">
                                 <View style={styles.countdownContainer}>
-                                    <Animated.Text style={[
-                                        styles.days,
-                                        { fontFamily: themeStyles.numberFont },
-                                        !themeStyles.textShadow && styles.noTextShadow,
-                                        { transform: [{ scale: pulseAnim }] }
-                                    ]}>{daysLeft}</Animated.Text>
-                                    <Text style={[
-                                        styles.label,
-                                        { fontFamily: themeStyles.labelFont },
-                                        !themeStyles.textShadow && styles.noTextShadow
-                                    ]}>Days To Go</Text>
+                                    <Animated.Text style={[styles.days, { fontFamily: themeStyles.numberFont }, !themeStyles.textShadow && styles.noTextShadow, { transform: [{ scale: pulseAnim }] }]}>
+                                        {daysLeft}
+                                    </Animated.Text>
+                                    <Text style={[styles.label, { fontFamily: themeStyles.labelFont }, !themeStyles.textShadow && styles.noTextShadow]}>
+                                        Days To Go
+                                    </Text>
                                 </View>
                             </View>
 
-                            {/* Daily Sentence - hidden when overlay is active */}
-                            {dailySentenceEnabled && !overlayVisible && (
-                                <View style={[styles.sentenceWrapper, sentencePositionStyles]}>
+                            {/* Generating State */}
+                            {isGenerating && (
+                                <LoadingOverlay message="Generating today's preview..." />
+                            )}
+
+                            {dailySentenceEnabled && !overlayVisible && !isGenerating && (
+                                <View style={[styles.sentenceWrapper, sentencePositionStyles]} pointerEvents="none">
                                     <View style={styles.sentenceBacking}>
-                                        <Text style={[
-                                            styles.sentenceText,
-                                            { fontFamily: themeStyles.labelFont },
-                                            !themeStyles.textShadow && styles.noTextShadow
-                                        ]}>
+                                        <Text style={[styles.sentenceText, { fontFamily: themeStyles.labelFont }, !themeStyles.textShadow && styles.noTextShadow]}>
                                             "{todaySentence}"
                                         </Text>
                                     </View>
@@ -204,47 +244,35 @@ export default function CountdownScreen({ navigation }: any) {
                 {/* Tap-to-Reveal Overlay */}
                 <Animated.View
                     pointerEvents={overlayVisible ? 'box-none' : 'none'}
-                    style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.3)', opacity: fadeAnim }]}
+                    style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)', opacity: fadeAnim }]}
                 >
-                    <SafeAreaView style={{ flex: 1 }} pointerEvents="box-none">
-                        {/* Options (Left Edge, vertically centered) */}
-                        <TouchableOpacity
-                            style={[styles.edgeButton, { left: 0 }]}
-                            onPress={() => navigation.navigate('Options')}
-                        >
-                            <Text style={styles.edgeIcon}>◀</Text>
-                            <Text style={styles.edgeText}>Options</Text>
-                        </TouchableOpacity>
+                    <SafeAreaView style={{ flex: 1, justifyContent: 'center' }} pointerEvents="box-none">
 
-                        {/* Daily Tips (Right Edge, vertically centered) */}
-                        <TouchableOpacity
-                            style={[styles.edgeButton, { right: 0 }]}
-                            onPress={() => navigation.navigate('DailyTips')}
-                        >
-                            <Text style={styles.edgeIcon}>▶</Text>
-                            <Text style={styles.edgeText}>Daily Tips</Text>
-                        </TouchableOpacity>
+                        {/* Premium Call to Action */}
+                        {!hasAccess && (
+                            <View style={styles.topButtonGroup}>
+                                <TouchableOpacity style={styles.largePremiumButton} onPress={() => navigation.navigate('Paywall')}>
+                                    <Text style={styles.largePremiumText}>✨ START FREE TRIAL FOR DAILY AI IMAGES</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
 
-                        {/* Top Group (Premium) */}
-                        <View style={styles.topButtonGroup}>
-                            <TouchableOpacity
-                                style={styles.largePremiumButton}
-                                onPress={() => navigation.navigate('Paywall')}
-                            >
-                                <Text style={styles.largePremiumText}>✨ UNLOCK PREMIUM EXPERIENCE</Text>
+                        {/* Recreate Button - Only shown if they have access and haven't recreated today */}
+                        {hasAccess && (!hasRecreatedToday || lastRecreatedDate !== todayStr) && (
+                            <TouchableOpacity style={styles.recreateButton} onPress={handleRecreateImage}>
+                                <Text style={styles.recreateText}>🔄 Recreate Today's Image</Text>
                             </TouchableOpacity>
-                        </View>
+                        )}
 
-                        {/* Bottom Group (Share) */}
-                        <TouchableOpacity
-                            style={styles.bottomShareButton}
-                            onPress={() => setShareSheetVisible(true)}
-                        >
+                        {/* Share Button centrally located when tapped */}
+                        <TouchableOpacity style={styles.bottomShareButton} onPress={() => setShareSheetVisible(true)}>
                             <Text style={styles.shareText}>📤 Share Countdown</Text>
                         </TouchableOpacity>
+
                     </SafeAreaView>
                 </Animated.View>
-            </View>
+            </TouchableOpacity>
+
             <ShareBottomSheet
                 visible={shareSheetVisible}
                 onClose={() => setShareSheetVisible(false)}
@@ -383,7 +411,7 @@ const styles = StyleSheet.create({
     },
     largePremiumText: {
         color: COLORS.white,
-        fontFamily: FONTS.sansBold,
+        fontFamily: FONTS.sansSemiBold,
         fontSize: 14,
         letterSpacing: 2,
     },
@@ -398,15 +426,32 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.4)',
     },
+    recreateButton: {
+        position: 'absolute',
+        bottom: 120, // Sit above the share button
+        alignSelf: 'center',
+        paddingVertical: SPACING.m,
+        paddingHorizontal: SPACING.xl,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 30,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.6)',
+    },
+    recreateText: {
+        color: COLORS.white,
+        fontFamily: FONTS.sansSemiBold,
+        fontSize: 14,
+        letterSpacing: 1,
+    },
     shareText: {
         color: COLORS.white,
-        fontFamily: FONTS.sansBold,
+        fontFamily: FONTS.sansSemiBold,
         fontSize: 16,
         letterSpacing: 1,
     },
     premiumText: {
         color: COLORS.white,
-        fontFamily: FONTS.sansBold,
+        fontFamily: FONTS.sansSemiBold,
         fontSize: 16,
     },
     hintsContainer: {

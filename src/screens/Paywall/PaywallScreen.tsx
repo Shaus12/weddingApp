@@ -3,18 +3,22 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { COLORS, FONTS, SPACING, SHADOWS } from '../../constants/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useUserStore } from '../../store/useUserStore';
 
 export default function PaywallScreen({ navigation }: any) {
+    const { startFreeTrial } = useUserStore();
+
     const handlePurchase = (plan: string) => {
-        Alert.alert('Success!', `Welcome to Eternal Glow Premium!`, [
-            { text: 'Start Creating', onPress: () => navigation.navigate('Gallery') }
+        startFreeTrial();
+        Alert.alert('Success!', `Welcome! Your 3 Days Free Trial has started.`, [
+            { text: 'Start Creating', onPress: () => navigation.navigate('MainTabs') }
         ]);
     };
 
     return (
         <View style={styles.container}>
             <LinearGradient
-                colors={[COLORS.background, '#FDFBF7']}
+                colors={[COLORS.backgroundLight, '#FDFBF7']}
                 style={styles.gradient}
             >
                 <SafeAreaView style={styles.content}>
@@ -81,16 +85,16 @@ const styles = StyleSheet.create({
         marginTop: SPACING.xl,
     },
     title: {
-        fontFamily: FONTS.serifBold,
+        fontFamily: FONTS.displayBold,
         fontSize: 28,
-        color: COLORS.text,
+        color: COLORS.slate900,
         textAlign: 'center',
         marginBottom: SPACING.s,
     },
     subtitle: {
         fontFamily: FONTS.sans,
         fontSize: 16,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
         textAlign: 'center',
     },
     features: {
@@ -108,7 +112,7 @@ const styles = StyleSheet.create({
     featureText: {
         fontFamily: FONTS.sans,
         fontSize: 18,
-        color: COLORS.text,
+        color: COLORS.slate900,
     },
     plans: {
         width: '100%',
@@ -121,34 +125,34 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#E0E0E0',
         alignItems: 'center',
-        ...SHADOWS.small,
+        ...SHADOWS.sm,
     },
     planBestValue: {
-        borderColor: COLORS.gold,
+        borderColor: '#D4AF37',
         backgroundColor: '#FFFDF5',
         borderWidth: 2,
     },
     planTitle: {
-        fontFamily: FONTS.sansBold,
+        fontFamily: FONTS.sansSemiBold,
         fontSize: 18,
-        color: COLORS.text,
+        color: COLORS.slate900,
         marginBottom: SPACING.xs,
     },
     planPrice: {
-        fontFamily: FONTS.serifBold,
+        fontFamily: FONTS.displayBold,
         fontSize: 24,
-        color: COLORS.text,
+        color: COLORS.slate900,
         marginBottom: SPACING.xs,
     },
     planTrial: {
-        fontFamily: FONTS.sansBold,
+        fontFamily: FONTS.sansSemiBold,
         fontSize: 14,
-        color: COLORS.gold,
+        color: '#D4AF37',
     },
     badge: {
         position: 'absolute',
         top: -12,
-        backgroundColor: COLORS.gold,
+        backgroundColor: '#D4AF37',
         paddingHorizontal: SPACING.m,
         paddingVertical: 4,
         borderRadius: 12,
@@ -156,7 +160,7 @@ const styles = StyleSheet.create({
     badgeText: {
         color: COLORS.white,
         fontSize: 10,
-        fontFamily: FONTS.sansBold,
+        fontFamily: FONTS.sansSemiBold,
     },
     closeButton: {
         alignItems: 'center',
@@ -167,7 +171,7 @@ const styles = StyleSheet.create({
     closeButtonText: {
         fontFamily: FONTS.sans,
         fontSize: 14,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
         textDecorationLine: 'underline',
     },
 });

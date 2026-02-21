@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 60,
     },
     names: {
-        fontFamily: FONTS.serifBold,
+        fontFamily: FONTS.displayBold,
         fontSize: 80,
         color: 'rgba(255,255,255,0.95)',
         textAlign: 'center',
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     daysNumber: {
-        fontFamily: FONTS.serifBold,
+        fontFamily: FONTS.displayBold,
         fontSize: 320,
         color: '#FFFFFF',
         lineHeight: 340,
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
         textShadowRadius: 20,
     },
     daysLabel: {
-        fontFamily: FONTS.sansBold,
+        fontFamily: FONTS.sansSemiBold,
         fontSize: 72,
         color: 'rgba(255,255,255,0.85)',
         letterSpacing: 16,

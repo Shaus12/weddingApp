@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ImageBackground, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS, FONTS, SPACING, SHADOWS } from '../../constants/theme';
 import { useUserStore } from '../../store/useUserStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,15 +12,19 @@ export default function WelcomeScreen({ navigation }: any) {
     const [p1, setP1] = useState(partner1Name);
     const [p2, setP2] = useState(partner2Name);
 
-    // For simplicity, we just use a basic string date for now. 
-    // Usually you'd use a DatePicker component here but matching HTML text input style.
-    const [date, setDate] = useState(weddingDate || '');
+    // DatePicker States
+    const [date, setDate] = useState<Date | null>(weddingDate ? new Date(weddingDate) : null);
+    const [showDatePicker, setShowDatePicker] = useState(false);
+
+    const handleDateChange = (event: any, selectedDate?: Date) => {
+        setShowDatePicker(Platform.OS === 'ios');
+        if (selectedDate) setDate(selectedDate);
+    };
 
     const handleNext = () => {
-        if (p1.trim() && p2.trim() && date.trim()) {
+        if (p1.trim() && p2.trim() && date) {
             setNames(p1, p2);
-            setWeddingDate(date);
-            // Assuming after Date screen it went to ImageUpload or Questionnaire in previous flow
+            setWeddingDate(date.toISOString());
             navigation.navigate('ImageUpload');
         }
     };
@@ -90,23 +95,39 @@ export default function WelcomeScreen({ navigation }: any) {
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>The Big Day</Text>
-                        <View style={styles.inputWrapper}>
+                        <TouchableOpacity style={styles.inputWrapper} onPress={() => setShowDatePicker(true)}>
                             <MaterialIcons name="calendar-today" size={20} color={COLORS.primary + '99'} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="YYYY-MM-DD"
-                                value={date}
-                                onChangeText={setDate}
-                                placeholderTextColor={COLORS.slate400}
+                            <View style={[styles.input, { justifyContent: 'center' }]}>
+                                <Text style={{ fontFamily: FONTS.sans, fontSize: 16, color: date ? COLORS.slate900 : COLORS.slate400 }}>
+                                    {date ? date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : "Select your date"}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={date || new Date()}
+                                mode="date"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={handleDateChange}
+                                minimumDate={new Date()}
                             />
-                        </View>
+                        )}
+                        {showDatePicker && Platform.OS === 'ios' && (
+                            <TouchableOpacity
+                                style={{ alignSelf: 'center', marginVertical: 10, padding: 8, backgroundColor: COLORS.slate200, borderRadius: 8 }}
+                                onPress={() => setShowDatePicker(false)}
+                            >
+                                <Text style={{ fontFamily: FONTS.sansSemiBold, color: COLORS.slate900 }}>Confirm Date</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
 
                     <View style={styles.buttonContainer}>
                         <TouchableOpacity
-                            style={[styles.button, (!p1.trim() || !p2.trim() || !date.trim()) && styles.buttonDisabled]}
+                            style={[styles.button, (!p1.trim() || !p2.trim() || !date) && styles.buttonDisabled]}
                             onPress={handleNext}
-                            disabled={!p1.trim() || !p2.trim() || !date.trim()}
+                            disabled={!p1.trim() || !p2.trim() || !date}
                         >
                             <Text style={styles.buttonText}>Get Started</Text>
                             <MaterialIcons name="arrow-forward" size={20} color={COLORS.white} />

@@ -10,17 +10,26 @@ export default function OptionsScreen({ navigation }: any) {
         countdownPosition,
         setCountdownPosition,
         dailySentenceEnabled,
-        setDailySentenceEnabled
+        setDailySentenceEnabled,
+        language,
+        setLanguage
     } = useUserStore();
 
     const [activeTab, setActiveTab] = useState<'settings' | 'design'>('design');
 
     const handleEditDetails = () => {
-        navigation.navigate('Name');
+        navigation.navigate('Welcome');
     };
 
     const handleChangeStyle = () => {
         navigation.navigate('StyleSelection');
+    };
+
+    const handleCycleLanguage = () => {
+        const langs = ['en', 'es', 'he'];
+        const currentIndex = langs.indexOf(language || 'en');
+        const nextIndex = (currentIndex + 1) % langs.length;
+        setLanguage(langs[nextIndex]);
     };
 
     const panResponder = useRef(
@@ -76,7 +85,7 @@ export default function OptionsScreen({ navigation }: any) {
                             <Switch
                                 value={dailySentenceEnabled}
                                 onValueChange={setDailySentenceEnabled}
-                                trackColor={{ false: COLORS.textLight, true: COLORS.accent || '#FF8C94' }}
+                                trackColor={{ false: COLORS.slate500, true: COLORS.primary || '#FF8C94' }}
                                 thumbColor={COLORS.white}
                             />
                         </View>
@@ -107,15 +116,15 @@ export default function OptionsScreen({ navigation }: any) {
 
                 {activeTab === 'settings' && (
                     <View style={styles.section}>
-                        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('Date')}>
+                        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('Welcome')}>
                             <Text style={styles.menuButtonText}>📅 Change Date</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('ImageSelection')}>
+                        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('ImageUpload')}>
                             <Text style={styles.menuButtonText}>🖼️ Change Photo</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('Name')}>
+                        <TouchableOpacity style={styles.menuButton} onPress={handleEditDetails}>
                             <Text style={styles.menuButtonText}>📝 Change Names</Text>
                         </TouchableOpacity>
 
@@ -131,7 +140,12 @@ export default function OptionsScreen({ navigation }: any) {
                             <Text style={styles.menuButtonText}>🔒 Privacy</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={[styles.menuButton, styles.dangerButton, { marginTop: SPACING.xl }]} onPress={() => { reset(); navigation.navigate('Name'); }}>
+                        <TouchableOpacity style={[styles.menuButton, styles.rowSwitch]} onPress={handleCycleLanguage}>
+                            <Text style={styles.menuButtonText}>🌐 Language</Text>
+                            <Text style={styles.valueText}>{language?.toUpperCase() || 'EN'}</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={[styles.menuButton, styles.dangerButton, { marginTop: SPACING.xl }]} onPress={() => { reset(); navigation.navigate('Welcome'); }}>
                             <Text style={[styles.menuButtonText, styles.dangerButtonText]}>⚠️ Restart Onboarding</Text>
                         </TouchableOpacity>
                     </View>
@@ -144,7 +158,7 @@ export default function OptionsScreen({ navigation }: any) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: COLORS.backgroundLight,
     },
     header: {
         flexDirection: 'row',
@@ -160,12 +174,12 @@ const styles = StyleSheet.create({
     backButtonText: {
         fontFamily: FONTS.sans,
         fontSize: 18,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
     },
     title: {
-        fontFamily: FONTS.serifBold,
+        fontFamily: FONTS.displayBold,
         fontSize: 24,
-        color: COLORS.text,
+        color: COLORS.slate900,
     },
     tabContainer: {
         flexDirection: 'row',
@@ -190,11 +204,11 @@ const styles = StyleSheet.create({
     tabText: {
         fontFamily: FONTS.sans,
         fontSize: 16,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
     },
     tabTextActive: {
-        fontFamily: FONTS.sansBold,
-        color: COLORS.accent || '#FF8C94',
+        fontFamily: FONTS.sansSemiBold,
+        color: COLORS.primary || '#FF8C94',
     },
     content: {
         padding: SPACING.l,
@@ -204,9 +218,9 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.xl,
     },
     sectionSubtitle: {
-        fontFamily: FONTS.sansBold,
+        fontFamily: FONTS.sansSemiBold,
         fontSize: 14,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
         marginBottom: SPACING.s,
         textTransform: 'uppercase',
         letterSpacing: 1,
@@ -226,17 +240,17 @@ const styles = StyleSheet.create({
         borderColor: 'transparent',
     },
     positionButtonActive: {
-        borderColor: COLORS.accent || '#FF8C94',
+        borderColor: COLORS.primary || '#FF8C94',
         backgroundColor: '#FFF0F5',
     },
     positionText: {
         fontFamily: FONTS.sans,
         fontSize: 16,
-        color: COLORS.text,
+        color: COLORS.slate900,
     },
     positionTextActive: {
-        fontFamily: FONTS.sansBold,
-        color: COLORS.accent || '#FF8C94',
+        fontFamily: FONTS.sansSemiBold,
+        color: COLORS.primary || '#FF8C94',
     },
     menuButton: {
         backgroundColor: COLORS.white,
@@ -257,7 +271,12 @@ const styles = StyleSheet.create({
     menuButtonText: {
         fontFamily: FONTS.sans,
         fontSize: 16,
-        color: COLORS.text,
+        color: COLORS.slate900,
+    },
+    valueText: {
+        fontFamily: FONTS.sansSemiBold,
+        fontSize: 16,
+        color: COLORS.primary || '#FF8C94',
     },
     dangerButton: {
         backgroundColor: '#FFF0F5',

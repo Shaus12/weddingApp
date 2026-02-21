@@ -6,6 +6,7 @@ import {
 import ViewShot from 'react-native-view-shot';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
 import ShareCard from './ShareCard';
+import LoadingOverlay from './LoadingOverlay';
 import {
     captureShareCard, shareToInstagram, shareToWhatsApp,
     saveImage, shareGeneral, buildCacheKey, buildCaption
@@ -118,9 +119,7 @@ export default function ShareBottomSheet({ visible, onClose, daysLeft, navigatio
 
                 {/* Loading / Error state */}
                 {isGenerating ? (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={COLORS.accent} />
-                    </View>
+                    <LoadingOverlay message="Preparing your card..." />
                 ) : error ? (
                     <View style={styles.errorContainer}>
                         <Text style={styles.errorText}>{error}</Text>
@@ -234,7 +233,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: COLORS.background,
+        backgroundColor: COLORS.backgroundLight,
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
         paddingTop: SPACING.s,
@@ -255,16 +254,16 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.m,
     },
     sheetTitle: {
-        fontFamily: FONTS.serifBold,
+        fontFamily: FONTS.displayBold,
         fontSize: 22,
-        color: COLORS.text,
+        color: COLORS.slate900,
         textAlign: 'center',
         marginBottom: SPACING.xs,
     },
     sheetSubtitle: {
         fontFamily: FONTS.sans,
         fontSize: 14,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
         textAlign: 'center',
         marginBottom: SPACING.l,
     },
@@ -299,16 +298,16 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(0,0,0,0.06)',
     },
     instagramButton: {
-        borderColor: COLORS.accent,
+        borderColor: COLORS.primary,
         borderWidth: 1.5,
         backgroundColor: '#FFF5F5',
     },
     primaryButton: {
-        backgroundColor: COLORS.accent,
-        borderColor: COLORS.accent,
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
     },
     primaryButtonText: {
-        fontFamily: FONTS.sansBold,
+        fontFamily: FONTS.sansSemiBold,
         color: COLORS.white,
         fontSize: 16,
     },
@@ -316,14 +315,14 @@ const styles = StyleSheet.create({
         fontSize: 24,
     },
     actionLabel: {
-        fontFamily: FONTS.sansBold,
+        fontFamily: FONTS.sansSemiBold,
         fontSize: 15,
-        color: COLORS.text,
+        color: COLORS.slate900,
     },
     actionSub: {
         fontFamily: FONTS.sans,
         fontSize: 12,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
     },
     watermarkNote: {
         alignItems: 'center',
@@ -332,7 +331,7 @@ const styles = StyleSheet.create({
     watermarkNoteText: {
         fontFamily: FONTS.sans,
         fontSize: 13,
-        color: COLORS.accent,
+        color: COLORS.primary,
         textDecorationLine: 'underline',
     },
     cancelButton: {
@@ -343,6 +342,6 @@ const styles = StyleSheet.create({
     cancelText: {
         fontFamily: FONTS.sans,
         fontSize: 16,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
     },
 });

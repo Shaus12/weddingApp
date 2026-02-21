@@ -25,7 +25,7 @@ export default function StyleSelectionScreen({ navigation }: any) {
             setStyle(selectedStyle);
             if (isOnboardingCompleted) {
                 // Return straight to home if they are just editing
-                navigation.navigate('Countdown');
+                navigation.navigate('MainTabs');
             } else {
                 // Continue onboarding flow
                 navigation.navigate('Questionnaire');
@@ -96,7 +96,7 @@ export default function StyleSelectionScreen({ navigation }: any) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        // backgroundColor: COLORS.background, handled by LinearGradient
+        // backgroundColor: COLORS.backgroundLight, handled by LinearGradient
     },
     header: {
         padding: SPACING.l,
@@ -107,16 +107,16 @@ const styles = StyleSheet.create({
         paddingBottom: SPACING.xl,
     },
     title: {
-        fontFamily: FONTS.serifBold,
+        fontFamily: FONTS.displayBold,
         fontSize: 28,
-        color: COLORS.text,
+        color: COLORS.slate900,
         marginBottom: SPACING.s,
         textAlign: 'center',
     },
     subtitle: {
         fontFamily: FONTS.sans,
         fontSize: 16,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
         textAlign: 'center',
     },
     card: {
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     cardSelected: {
-        borderColor: COLORS.accent || '#FF8C94',
+        borderColor: COLORS.primary || '#FF8C94',
         backgroundColor: '#FFFFFF',
     },
     cardLocked: {
@@ -147,15 +147,15 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.xs,
     },
     cardTitle: {
-        fontFamily: FONTS.serifBold,
+        fontFamily: FONTS.displayBold,
         fontSize: 20,
-        color: COLORS.text,
+        color: COLORS.slate900,
     },
     cardTitleSelected: {
-        color: COLORS.text,
+        color: COLORS.slate900,
     },
     cardTitleLocked: {
-        color: COLORS.textLight,
+        color: COLORS.slate500,
     },
     lockIcon: {
         fontSize: 16,
@@ -163,10 +163,10 @@ const styles = StyleSheet.create({
     cardDesc: {
         fontFamily: FONTS.sans,
         fontSize: 14,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
     },
     cardDescSelected: {
-        color: COLORS.text,
+        color: COLORS.slate900,
     },
     cardDescLocked: {
         color: '#A0A0A0',
@@ -176,23 +176,23 @@ const styles = StyleSheet.create({
         paddingBottom: SPACING.xl,
     },
     button: {
-        backgroundColor: COLORS.accent || '#FF8C94',
+        backgroundColor: COLORS.primary || '#FF8C94',
         padding: SPACING.m,
         borderRadius: 30,
         alignItems: 'center',
         width: '100%',
-        shadowColor: COLORS.accent || '#FF8C94',
+        shadowColor: COLORS.primary || '#FF8C94',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
         elevation: 4,
     },
     buttonDisabled: {
-        backgroundColor: COLORS.textLight,
+        backgroundColor: COLORS.slate500,
     },
     buttonText: {
         color: COLORS.white,
-        fontFamily: FONTS.sansBold,
+        fontFamily: FONTS.sansSemiBold,
         fontSize: 16,
     },
 });

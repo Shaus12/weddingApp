@@ -4,6 +4,7 @@ import { COLORS, FONTS, SPACING, SHADOWS } from '../../constants/theme';
 import { useUserStore } from '../../store/useUserStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { generateScenePrompts, generateImage } from '../../services/aiService';
+import LoadingOverlay from '../../components/LoadingOverlay';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = (width - SPACING.l * 2 - SPACING.m) / 2;
@@ -62,7 +63,7 @@ export default function GalleryScreen({ navigation }: any) {
         <View style={styles.card}>
             {item.loading ? (
                 <View style={[styles.imagePlaceholder, { backgroundColor: '#F5F0E8' }]}>
-                    <ActivityIndicator size="small" color={COLORS.gold} />
+                    <ActivityIndicator size="small" color={'#D4AF37'} />
                     <Text style={styles.loadingLabel}>Generating...</Text>
                 </View>
             ) : item.imageUri ? (
@@ -91,10 +92,7 @@ export default function GalleryScreen({ navigation }: any) {
             </View>
 
             {loadingPrompts ? (
-                <View style={styles.centeredLoader}>
-                    <ActivityIndicator size="large" color={COLORS.gold} />
-                    <Text style={styles.centeredLoaderText}>Dreaming up scenes for you...</Text>
-                </View>
+                <LoadingOverlay message="Dreaming up scenes for you..." />
             ) : (
                 <FlatList
                     data={items}
@@ -105,7 +103,7 @@ export default function GalleryScreen({ navigation }: any) {
                     columnWrapperStyle={styles.columnWrapper}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.gold} />
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={'#D4AF37'} />
                     }
                 />
             )}
@@ -116,7 +114,7 @@ export default function GalleryScreen({ navigation }: any) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: COLORS.backgroundLight,
     },
     header: {
         padding: SPACING.l,
@@ -133,7 +131,7 @@ const styles = StyleSheet.create({
     backButtonText: {
         fontFamily: FONTS.sans,
         fontSize: 16,
-        color: COLORS.text,
+        color: COLORS.slate900,
     },
     letterButton: {
         position: 'absolute',
@@ -144,9 +142,9 @@ const styles = StyleSheet.create({
         fontSize: 24,
     },
     title: {
-        fontFamily: FONTS.serifBold,
+        fontFamily: FONTS.displayBold,
         fontSize: 24,
-        color: COLORS.text,
+        color: COLORS.slate900,
     },
     list: {
         padding: SPACING.l,
@@ -160,7 +158,7 @@ const styles = StyleSheet.create({
         height: IMAGE_SIZE * 1.2,
         borderRadius: SPACING.m,
         backgroundColor: COLORS.white,
-        ...SHADOWS.small,
+        ...SHADOWS.sm,
     },
     imagePlaceholder: {
         flex: 1,
@@ -184,14 +182,14 @@ const styles = StyleSheet.create({
     cardTitle: {
         fontFamily: FONTS.sans,
         fontSize: 11,
-        color: COLORS.text,
+        color: COLORS.slate900,
         textAlign: 'center',
     },
     loadingLabel: {
         marginTop: SPACING.xs,
         fontFamily: FONTS.sans,
         fontSize: 11,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
     },
     errorLabel: {
         fontSize: 24,
@@ -206,6 +204,6 @@ const styles = StyleSheet.create({
         marginTop: SPACING.m,
         fontFamily: FONTS.sans,
         fontSize: 16,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
     },
 });

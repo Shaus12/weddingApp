@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { COLORS, FONTS, SPACING, SHADOWS } from '../../constants/theme';
 import { useUserStore } from '../../store/useUserStore';
+import LoadingOverlay from '../../components/LoadingOverlay';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LetterGeneratorScreen({ navigation }: any) {
@@ -35,10 +36,7 @@ ${partner1Name} & ${partner2Name}`;
 
             <View style={styles.content}>
                 {loading ? (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={COLORS.gold} />
-                        <Text style={styles.loadingText}>Writing from the heart...</Text>
-                    </View>
+                    <LoadingOverlay message="Writing from the heart..." />
                 ) : (
                     <View style={styles.paper}>
                         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -54,7 +52,7 @@ ${partner1Name} & ${partner2Name}`;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: COLORS.backgroundLight,
     },
     header: {
         padding: SPACING.l,
@@ -71,12 +69,12 @@ const styles = StyleSheet.create({
     backButtonText: {
         fontFamily: FONTS.sans,
         fontSize: 16,
-        color: COLORS.text,
+        color: COLORS.slate900,
     },
     title: {
-        fontFamily: FONTS.serifBold,
+        fontFamily: FONTS.displayBold,
         fontSize: 24,
-        color: COLORS.text,
+        color: COLORS.slate900,
     },
     content: {
         flex: 1,
@@ -90,13 +88,13 @@ const styles = StyleSheet.create({
         marginTop: SPACING.m,
         fontFamily: FONTS.sans,
         fontSize: 16,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
     },
     paper: {
         backgroundColor: '#FFFDF9',
         padding: SPACING.xl,
         borderRadius: SPACING.s,
-        ...SHADOWS.medium,
+        ...SHADOWS.md,
         minHeight: 400,
     },
     scrollContent: {
@@ -104,10 +102,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     letterText: {
-        fontFamily: FONTS.serif,
+        fontFamily: FONTS.displayBold,
         fontSize: 18,
         lineHeight: 28,
-        color: COLORS.text,
+        color: COLORS.slate900,
         fontStyle: 'italic',
     },
 });

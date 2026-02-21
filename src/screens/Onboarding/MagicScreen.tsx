@@ -32,7 +32,7 @@ export default function MagicScreen({ navigation }: any) {
                 <Text style={styles.subtitle}>We are weaving your story into art.</Text>
                 <View style={styles.loaderContainer}>
                     <Text style={styles.magicIcon}>💖</Text>
-                    <ActivityIndicator size="large" color={COLORS.accent || '#FF8C94'} style={styles.loader} />
+                    <ActivityIndicator size="large" color={COLORS.primary || '#FF8C94'} style={styles.loader} />
                 </View>
             </View>
         </SafeAreaView>
@@ -42,7 +42,7 @@ export default function MagicScreen({ navigation }: any) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        // backgroundColor: COLORS.background, handled by LinearGradient
+        // backgroundColor: COLORS.backgroundLight, handled by LinearGradient
     },
     content: {
         flex: 1,
@@ -51,16 +51,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     title: {
-        fontFamily: FONTS.serifBold,
+        fontFamily: FONTS.displayBold,
         fontSize: 28,
-        color: COLORS.text,
+        color: COLORS.slate900,
         marginBottom: SPACING.s,
         textAlign: 'center',
     },
     subtitle: {
         fontFamily: FONTS.sans,
         fontSize: 16,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
         marginBottom: SPACING.xxl,
         textAlign: 'center',
     },

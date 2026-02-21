@@ -1,10 +1,34 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Modal, TextInput, KeyboardAvoidingView } from 'react-native';
 import { COLORS, FONTS, SPACING, SHADOWS } from '../../constants/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useUserStore } from '../../store/useUserStore';
 
 export default function RemindersScreen({ navigation }: any) {
+    const { tasks, toggleTask, addTask } = useUserStore();
+    const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
+    const [modalVisible, setModalVisible] = useState(false);
+    const [newTaskText, setNewTaskText] = useState('');
+
+    const handleAddTask = () => {
+        if (newTaskText.trim()) {
+            addTask(newTaskText.trim());
+            setNewTaskText('');
+            setModalVisible(false);
+        }
+    };
+
+    const completedTasksCount = tasks.filter(t => t.completed).length;
+    const totalTasksCount = tasks.length;
+    const progressPercentage = totalTasksCount === 0 ? 0 : Math.round((completedTasksCount / totalTasksCount) * 100);
+
+    const filteredTasks = tasks.filter(t => {
+        if (filter === 'all') return true;
+        if (filter === 'pending') return !t.completed;
+        if (filter === 'completed') return t.completed;
+        return true;
+    });
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -22,27 +46,27 @@ export default function RemindersScreen({ navigation }: any) {
                 <View style={styles.progressCard}>
                     <View style={styles.progressHeader}>
                         <View>
-                            <Text style={styles.progressPercentage}>45% Complete</Text>
-                            <Text style={styles.progressSubtitle}>12 of 27 tasks finished</Text>
+                            <Text style={styles.progressPercentage}>{progressPercentage}% Complete</Text>
+                            <Text style={styles.progressSubtitle}>{completedTasksCount} of {totalTasksCount} tasks finished</Text>
                         </View>
                         <Text style={styles.progressLabel}>YOUR JOURNEY</Text>
                     </View>
                     <View style={styles.progressBarBackground}>
-                        <View style={[styles.progressBarFill, { width: '45%' }]} />
+                        <View style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} />
                     </View>
                     <Text style={styles.progressQuote}>"True love stories never have endings, but they do have great plans."</Text>
                 </View>
 
                 {/* Filter Tabs */}
                 <View style={styles.tabsContainer}>
-                    <TouchableOpacity style={[styles.tab, styles.tabActive]}>
-                        <Text style={[styles.tabText, styles.tabTextActive]}>All Tasks</Text>
+                    <TouchableOpacity style={[styles.tab, filter === 'all' && styles.tabActive]} onPress={() => setFilter('all')}>
+                        <Text style={[styles.tabText, filter === 'all' && styles.tabTextActive]}>All Tasks</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.tab}>
-                        <Text style={styles.tabText}>Pending</Text>
+                    <TouchableOpacity style={[styles.tab, filter === 'pending' && styles.tabActive]} onPress={() => setFilter('pending')}>
+                        <Text style={[styles.tabText, filter === 'pending' && styles.tabTextActive]}>Pending</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.tab}>
-                        <Text style={styles.tabText}>Completed</Text>
+                    <TouchableOpacity style={[styles.tab, filter === 'completed' && styles.tabActive]} onPress={() => setFilter('completed')}>
+                        <Text style={[styles.tabText, filter === 'completed' && styles.tabTextActive]}>Completed</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -55,90 +79,97 @@ export default function RemindersScreen({ navigation }: any) {
                     </View>
 
                     <View style={styles.taskItems}>
-                        {/* Completed Task */}
-                        <View style={styles.taskCard}>
-                            <View style={styles.taskCheckWrapper}>
-                                <View style={styles.taskCheckCompleted}>
-                                    <MaterialIcons name="check" size={14} color={COLORS.white} />
+                        {filteredTasks.length === 0 ? (
+                            <Text style={styles.emptyText}>No tasks found in this category.</Text>
+                        ) : (
+                            filteredTasks.map((task) => (
+                                <View key={task.id} style={[styles.taskCard, !task.completed && task.priority && styles.taskCardActive]}>
+                                    <View style={styles.taskCheckWrapper}>
+                                        <TouchableOpacity
+                                            style={task.completed ? styles.taskCheckCompleted : (!task.completed && task.priority ? styles.taskCheckActive : styles.taskCheckRegular)}
+                                            onPress={() => toggleTask(task.id)}
+                                        >
+                                            {task.completed && <MaterialIcons name="check" size={14} color={COLORS.white} />}
+                                        </TouchableOpacity>
+                                    </View>
+                                    <View style={styles.taskContent}>
+                                        <Text style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}>{task.title}</Text>
+                                        <View style={styles.taskMeta}>
+                                            {task.date && (
+                                                <View style={styles.taskDate}>
+                                                    <MaterialIcons name="event" size={12} color={task.completed ? COLORS.slate400 : (task.priority ? COLORS.primary : COLORS.slate500)} />
+                                                    <Text style={[styles.taskDateText, !task.completed && task.priority && { color: COLORS.primary }, task.completed && { color: COLORS.slate400 }]}>
+                                                        {task.date}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                            {task.completed ? (
+                                                <View style={styles.tagCompleted}>
+                                                    <Text style={styles.tagCompletedText}>DONE</Text>
+                                                </View>
+                                            ) : (
+                                                task.priority && (
+                                                    <View style={styles.tagPriority}>
+                                                        <Text style={styles.tagPriorityText}>PRIORITY</Text>
+                                                    </View>
+                                                )
+                                            )}
+                                        </View>
+                                    </View>
+                                    {!task.completed && task.priority && <MaterialIcons name="chevron-right" size={24} color={COLORS.slate300} />}
                                 </View>
-                            </View>
-                            <View style={styles.taskContent}>
-                                <Text style={[styles.taskTitle, styles.taskTitleCompleted]}>Secure the Dream Venue</Text>
-                                <View style={styles.taskMeta}>
-                                    <View style={styles.taskDate}>
-                                        <MaterialIcons name="event" size={12} color={COLORS.slate400} />
-                                        <Text style={styles.taskDateText}>Oct 12, 2023</Text>
-                                    </View>
-                                    <View style={styles.tagCompleted}>
-                                        <Text style={styles.tagCompletedText}>DONE</Text>
-                                    </View>
-                                </View>
-                            </View>
-                        </View>
-
-                        {/* Active Task */}
-                        <View style={[styles.taskCard, styles.taskCardActive]}>
-                            <View style={styles.taskCheckWrapper}>
-                                <TouchableOpacity style={styles.taskCheckActive} />
-                            </View>
-                            <View style={styles.taskContent}>
-                                <Text style={styles.taskTitle}>Finalize Guest List</Text>
-                                <View style={styles.taskMeta}>
-                                    <View style={styles.taskDate}>
-                                        <MaterialIcons name="event" size={12} color={COLORS.primary} />
-                                        <Text style={[styles.taskDateText, { color: COLORS.primary }]}>Nov 05, 2023</Text>
-                                    </View>
-                                    <View style={styles.tagPriority}>
-                                        <Text style={styles.tagPriorityText}>PRIORITY</Text>
-                                    </View>
-                                </View>
-                            </View>
-                            <MaterialIcons name="chevron-right" size={24} color={COLORS.slate300} />
-                        </View>
-
-                        {/* Regular Task */}
-                        <View style={styles.taskCard}>
-                            <View style={styles.taskCheckWrapper}>
-                                <TouchableOpacity style={styles.taskCheckRegular} />
-                            </View>
-                            <View style={styles.taskContent}>
-                                <Text style={styles.taskTitle}>Book Wedding Photographer</Text>
-                                <View style={styles.taskMeta}>
-                                    <View style={styles.taskDate}>
-                                        <MaterialIcons name="event" size={12} color={COLORS.slate500} />
-                                        <Text style={[styles.taskDateText, { color: COLORS.slate500 }]}>Nov 20, 2023</Text>
-                                    </View>
-                                </View>
-                            </View>
-                        </View>
+                            ))
+                        )}
                     </View>
                 </View>
             </ScrollView>
 
             {/* FAB */}
-            <TouchableOpacity style={styles.fab}>
+            <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
                 <MaterialIcons name="add" size={28} color={COLORS.white} />
             </TouchableOpacity>
 
-            {/* Bottom Nav equivalent from HTML (visual only, navigation handled by app) */}
-            <View style={styles.bottomNav}>
-                <TouchableOpacity style={styles.navItem}>
-                    <MaterialIcons name="home" size={24} color={COLORS.slate400} />
-                    <Text style={styles.navText}>HOME</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem}>
-                    <MaterialIcons name="list-alt" size={24} color={COLORS.primary} />
-                    <Text style={[styles.navText, { color: COLORS.primary }]}>CHECKLIST</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem}>
-                    <MaterialIcons name="storefront" size={24} color={COLORS.slate400} />
-                    <Text style={styles.navText}>VENDORS</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem}>
-                    <MaterialIcons name="person" size={24} color={COLORS.slate400} />
-                    <Text style={styles.navText}>PROFILE</Text>
-                </TouchableOpacity>
-            </View>
+            {/* Add Task Modal */}
+            <Modal
+                visible={modalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.modalOverlay}
+                >
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>New Task</Text>
+                            <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                <MaterialIcons name="close" size={24} color={COLORS.slate400} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <TextInput
+                            style={styles.modalInput}
+                            placeholder="e.g. Taste testing wedding cakes"
+                            value={newTaskText}
+                            onChangeText={setNewTaskText}
+                            placeholderTextColor={COLORS.slate400}
+                            autoFocus
+                            onSubmitEditing={handleAddTask}
+                            returnKeyType="done"
+                        />
+
+                        <TouchableOpacity
+                            style={[styles.modalButton, !newTaskText.trim() && styles.modalButtonDisabled]}
+                            onPress={handleAddTask}
+                            disabled={!newTaskText.trim()}
+                        >
+                            <Text style={styles.modalButtonText}>Add Task</Text>
+                        </TouchableOpacity>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+
         </SafeAreaView>
     );
 }
@@ -267,6 +298,13 @@ const styles = StyleSheet.create({
     taskItems: {
         gap: SPACING.s,
     },
+    emptyText: {
+        fontFamily: FONTS.sans,
+        fontSize: 14,
+        color: COLORS.slate400,
+        textAlign: 'center',
+        padding: SPACING.xl,
+    },
     taskCard: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -371,28 +409,52 @@ const styles = StyleSheet.create({
         ...SHADOWS.lg,
         shadowColor: COLORS.primary,
     },
-    bottomNav: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        flexDirection: 'row',
-        backgroundColor: COLORS.backgroundLight,
-        borderTopWidth: 1,
-        borderTopColor: COLORS.primary + '1A',
-        paddingTop: SPACING.s,
-        paddingBottom: Platform.OS === 'ios' ? 34 : SPACING.s,
-    },
-    navItem: {
+    modalOverlay: {
         flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: COLORS.white,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: SPACING.l,
+        paddingBottom: Platform.OS === 'ios' ? 40 : SPACING.l,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: 4,
+        marginBottom: SPACING.l,
     },
-    navText: {
-        fontFamily: FONTS.sansSemiBold,
-        fontSize: 10,
-        color: COLORS.slate400,
-        letterSpacing: 1,
+    modalTitle: {
+        fontFamily: FONTS.displayBold,
+        fontSize: 20,
+        color: COLORS.slate900,
     },
+    modalInput: {
+        fontFamily: FONTS.sans,
+        fontSize: 16,
+        color: COLORS.slate900,
+        borderWidth: 1,
+        borderColor: COLORS.slate200,
+        borderRadius: 12,
+        padding: SPACING.m,
+        marginBottom: SPACING.l,
+        backgroundColor: '#f8f9fa',
+    },
+    modalButton: {
+        backgroundColor: COLORS.primary,
+        padding: SPACING.m,
+        borderRadius: 16,
+        alignItems: 'center',
+    },
+    modalButtonDisabled: {
+        backgroundColor: COLORS.slate300,
+    },
+    modalButtonText: {
+        fontFamily: FONTS.displayBold,
+        fontSize: 16,
+        color: COLORS.white,
+    }
 });

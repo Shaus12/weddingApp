@@ -68,7 +68,7 @@ export default function ImageUploadScreen({ navigation }: any) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        // backgroundColor: COLORS.background, handled by LinearGradient
+        // backgroundColor: COLORS.backgroundLight, handled by LinearGradient
     },
     content: {
         flex: 1,
@@ -77,16 +77,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     title: {
-        fontFamily: FONTS.serifBold,
+        fontFamily: FONTS.displayBold,
         fontSize: 28,
-        color: COLORS.text,
+        color: COLORS.slate900,
         marginBottom: SPACING.s,
         textAlign: 'center',
     },
     subtitle: {
         fontFamily: FONTS.sans,
         fontSize: 16,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
         marginBottom: SPACING.xxl,
         textAlign: 'center',
     },
@@ -124,26 +124,26 @@ const styles = StyleSheet.create({
     placeholderText: {
         fontFamily: FONTS.sans,
         fontSize: 16,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
     },
     button: {
-        backgroundColor: COLORS.accent || '#FF8C94',
+        backgroundColor: COLORS.primary || '#FF8C94',
         padding: SPACING.m,
         borderRadius: 30,
         alignItems: 'center',
         width: '100%',
-        shadowColor: COLORS.accent || '#FF8C94',
+        shadowColor: COLORS.primary || '#FF8C94',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
         elevation: 4,
     },
     buttonDisabled: {
-        backgroundColor: COLORS.textLight,
+        backgroundColor: COLORS.slate500,
     },
     buttonText: {
         color: COLORS.white,
-        fontFamily: FONTS.sansBold,
+        fontFamily: FONTS.sansSemiBold,
         fontSize: 16,
     },
 });

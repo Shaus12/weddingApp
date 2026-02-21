@@ -203,12 +203,12 @@ const styles = StyleSheet.create({
     backButtonText: {
         fontFamily: FONTS.sans,
         fontSize: 24,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
     },
     title: {
-        fontFamily: FONTS.serifBold,
+        fontFamily: FONTS.displayBold,
         fontSize: 22,
-        color: COLORS.text,
+        color: COLORS.slate900,
         letterSpacing: 1,
     },
     flatListContent: {
@@ -248,15 +248,15 @@ const styles = StyleSheet.create({
         marginRight: 6,
     },
     typeText: {
-        fontFamily: FONTS.sansBold,
+        fontFamily: FONTS.sansSemiBold,
         fontSize: 12,
-        color: COLORS.accent || '#FF8C94',
+        color: COLORS.primary || '#FF8C94',
         letterSpacing: 2,
     },
     mainContent: {
-        fontFamily: FONTS.serifBold,
+        fontFamily: FONTS.displayBold,
         fontSize: 28,
-        color: COLORS.text,
+        color: COLORS.slate900,
         textAlign: 'center',
         lineHeight: 38,
     },
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     },
     paginationDotActive: {
         width: 20,
-        backgroundColor: COLORS.accent || '#FF8C94',
+        backgroundColor: COLORS.primary || '#FF8C94',
     },
     hintContainer: {
         marginBottom: SPACING.xl,
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     hintText: {
         fontFamily: FONTS.sans,
         fontSize: 14,
-        color: COLORS.textLight,
+        color: COLORS.slate500,
         textAlign: 'center',
         opacity: 0.8,
     },

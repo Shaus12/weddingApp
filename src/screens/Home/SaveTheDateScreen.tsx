@@ -84,11 +84,17 @@ export default function SaveTheDateScreen({ navigation }: any) {
                 </TouchableOpacity>
 
                 <View style={styles.secondaryActions}>
-                    <TouchableOpacity style={styles.secondaryButtonLight}>
+                    <TouchableOpacity
+                        style={styles.secondaryButtonLight}
+                        onPress={() => navigation.navigate('StyleSelection')}
+                    >
                         <MaterialIcons name="edit" size={20} color={COLORS.primary} />
                         <Text style={styles.secondaryButtonLightText}>Edit Design</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.secondaryButtonDark}>
+                    <TouchableOpacity
+                        style={styles.secondaryButtonDark}
+                        onPress={() => Alert.alert("Coming Soon", "RSVP tracking will be enabled closer to your date!")}
+                    >
                         <MaterialIcons name="settings" size={20} color={COLORS.slate700} />
                         <Text style={styles.secondaryButtonDarkText}>RSVP Settings</Text>
                     </TouchableOpacity>
