@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, StatusBar, Animated, PanResponder, DimensionValue, Alert } from 'react-native';
+import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, StatusBar, Animated, PanResponder, DimensionValue, Alert, Platform } from 'react-native';
 import ShareBottomSheet from '../../components/ShareBottomSheet';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import { COLORS, FONTS, SPACING, SHADOWS } from '../../constants/theme';
 import { useUserStore } from '../../store/useUserStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const DAILY_SENTENCES = [
     "Every love story is beautiful, but ours is my favorite.",
@@ -25,14 +26,17 @@ export default function CountdownScreen({ navigation }: any) {
         partner1Name, partner2Name, weddingDate, baseImage, style,
         countdownPosition, dailySentenceEnabled,
         isTrialActive, isPremium, dailyImageUrl, lastDailyImageDate, setDailyImage,
-        hasRecreatedToday, lastRecreatedDate, setHasRecreatedToday
+        hasRecreatedToday, lastRecreatedDate, setHasRecreatedToday,
+        firstTimeHintShown, setFirstTimeHintShown
     } = useUserStore();
 
-    const [overlayVisible, setOverlayVisible] = useState(false);
+    const [overlayVisible, setOverlayVisible] = useState(true);
     const [shareSheetVisible, setShareSheetVisible] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
-    const overlayVisibleRef = useRef(false);
-    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const [showHint, setShowHint] = useState(false);
+    const overlayVisibleRef = useRef(true);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const fadeAnim = useRef(new Animated.Value(1)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
     const hasAccess = isTrialActive || isPremium;
@@ -125,23 +129,67 @@ export default function CountdownScreen({ navigation }: any) {
         }
     };
 
+    const startTimer = () => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+            hideOverlay();
+        }, 3000);
+    };
+
+    const stopTimer = () => {
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+    };
+
     const showOverlay = () => {
         setOverlayVisible(true);
         overlayVisibleRef.current = true;
+
+        // Show Tab Bar (Inverted logic: UI Visible by default)
+        navigation.setOptions({
+            tabBarStyle: {
+                backgroundColor: COLORS.backgroundLight,
+                borderTopWidth: 1,
+                borderTopColor: COLORS.primary + '1A',
+                paddingBottom: Platform.OS === 'ios' ? 34 : 10,
+                paddingTop: 10,
+                height: Platform.OS === 'ios' ? 88 : 64,
+                ...SHADOWS.md,
+            }
+        });
+        StatusBar.setHidden(false, 'fade');
+
         Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 250,
             useNativeDriver: true,
         }).start();
+
+        // Handle first-time hint
+        if (!firstTimeHintShown) {
+            setShowHint(true);
+            setFirstTimeHintShown(true);
+        }
     };
 
     const hideOverlay = () => {
         overlayVisibleRef.current = false;
+        setShowHint(false);
+        // Hide Tab Bar immediately (Inverted logic: entrar em Poster Mode)
+        navigation.setOptions({
+            tabBarStyle: { display: 'none' }
+        });
+        StatusBar.setHidden(true, 'fade');
+
         Animated.timing(fadeAnim, {
             toValue: 0,
             duration: 250,
             useNativeDriver: true,
-        }).start(() => setOverlayVisible(false));
+        }).start(() => {
+            setOverlayVisible(false);
+        });
     };
 
     const handleTap = () => {
@@ -151,6 +199,12 @@ export default function CountdownScreen({ navigation }: any) {
             showOverlay();
         }
     };
+
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) clearTimeout(timerRef.current);
+        };
+    }, []);
 
     const calculateDaysLeft = () => {
         if (!weddingDate) return 0;
@@ -264,10 +318,19 @@ export default function CountdownScreen({ navigation }: any) {
                             </TouchableOpacity>
                         )}
 
-                        {/* Share Button centrally located when tapped */}
-                        <TouchableOpacity style={styles.bottomShareButton} onPress={() => setShareSheetVisible(true)}>
-                            <Text style={styles.shareText}>📤 Share Countdown</Text>
+                        {/* Share Button relocated to corner when tapped */}
+                        <TouchableOpacity style={styles.cornerShareButton} onPress={() => {
+                            setShareSheetVisible(true);
+                        }}>
+                            <MaterialIcons name="ios-share" size={24} color={COLORS.white} />
                         </TouchableOpacity>
+
+                        {/* First-time Hint */}
+                        {showHint && (
+                            <View style={styles.hintsContainer} pointerEvents="none">
+                                <Text style={styles.hintText}>Tap to hide/show menu</Text>
+                            </View>
+                        )}
 
                     </SafeAreaView>
                 </Animated.View>
@@ -415,16 +478,19 @@ const styles = StyleSheet.create({
         fontSize: 14,
         letterSpacing: 2,
     },
-    bottomShareButton: {
+    cornerShareButton: {
         position: 'absolute',
-        bottom: 60,
-        alignSelf: 'center',
-        paddingVertical: SPACING.m,
-        paddingHorizontal: SPACING.xxl,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        borderRadius: 30,
+        top: SPACING.xl,
+        right: SPACING.l,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.4)',
+        ...SHADOWS.md,
     },
     recreateButton: {
         position: 'absolute',
