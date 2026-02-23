@@ -1,460 +1,734 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Modal, TextInput, KeyboardAvoidingView } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  RefreshControl,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { COLORS, FONTS, SPACING, SHADOWS } from '../../constants/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useUserStore } from '../../store/useUserStore';
+import { getTodayDateKey } from '../../services/dailyContentService';
+import {
+  getDailyCardPayload,
+  type DailyCardType,
+} from '../../constants/dailyContent';
+import {
+  getTasksByStage,
+  getStageForDaysToGo,
+  CHECKLIST_STAGES,
+  type ChecklistTask,
+  type ChecklistStage,
+} from '../../constants/checklistStages';
+import {
+  getCompletedIds,
+  setCompleted as persistCompleted,
+  getNotes,
+  setNote as persistNote,
+  getCustomTasks,
+  addCustomTask,
+  deleteCustomTask,
+  type CustomTask,
+} from '../../services/checklistPersistenceService';
+
+type Tab = 'today' | 'checklist';
 
 export default function RemindersScreen({ navigation }: any) {
-    const { tasks, toggleTask, addTask } = useUserStore();
-    const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
-    const [modalVisible, setModalVisible] = useState(false);
-    const [newTaskText, setNewTaskText] = useState('');
+  const { weddingDate } = useUserStore();
+  const [activeTab, setActiveTab] = useState<Tab>('today');
 
-    const handleAddTask = () => {
-        if (newTaskText.trim()) {
-            addTask(newTaskText.trim());
-            setNewTaskText('');
-            setModalVisible(false);
-        }
-    };
+  const [todaysCard, setTodaysCard] = useState<{
+    type: DailyCardType;
+    content: string;
+    id: string;
+  } | null>(null);
+  const [milestoneHint, setMilestoneHint] = useState<string | null>(null);
+  const [loadingDaily, setLoadingDaily] = useState(true);
 
-    const completedTasksCount = tasks.filter(t => t.completed).length;
-    const totalTasksCount = tasks.length;
-    const progressPercentage = totalTasksCount === 0 ? 0 : Math.round((completedTasksCount / totalTasksCount) * 100);
+  const [completed, setCompleted] = useState<Record<string, boolean>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [customTasks, setCustomTasks] = useState<CustomTask[]>([]);
+  const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set());
+  const [refreshing, setRefreshing] = useState(false);
+  const [addMissionVisible, setAddMissionVisible] = useState(false);
+  const [newMissionTitle, setNewMissionTitle] = useState('');
+  const [newMissionStageId, setNewMissionStageId] = useState<string>(CHECKLIST_STAGES[0].id);
 
-    const filteredTasks = tasks.filter(t => {
-        if (filter === 'all') return true;
-        if (filter === 'pending') return !t.completed;
-        if (filter === 'completed') return t.completed;
-        return true;
+  const daysToGo = weddingDate
+    ? Math.max(
+        0,
+        Math.ceil(
+          (new Date(weddingDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+        )
+      )
+    : 0;
+  const dateKey = getTodayDateKey();
+
+  const loadDaily = useCallback(() => {
+    setLoadingDaily(true);
+    const payload = getDailyCardPayload(dateKey, daysToGo);
+    setTodaysCard(payload);
+    const tomorrow = daysToGo - 1;
+    if (tomorrow === 30 || tomorrow === 14 || tomorrow === 7 || tomorrow === 1) {
+      setMilestoneHint(`Milestone tomorrow: ${tomorrow} days left`);
+    } else {
+      setMilestoneHint(null);
+    }
+    setLoadingDaily(false);
+  }, [dateKey, daysToGo]);
+
+  const loadChecklist = useCallback(async () => {
+    const [c, n, custom] = await Promise.all([getCompletedIds(), getNotes(), getCustomTasks()]);
+    setCompleted(c);
+    setNotes(n);
+    setCustomTasks(custom);
+    const relevantStage = getStageForDaysToGo(daysToGo);
+    setExpandedStages(new Set(relevantStage ? [relevantStage] : []));
+  }, [daysToGo]);
+
+  useEffect(() => {
+    loadDaily();
+  }, [loadDaily]);
+
+  useEffect(() => {
+    if (activeTab === 'checklist') loadChecklist();
+  }, [activeTab, loadChecklist]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    loadDaily();
+    if (activeTab === 'checklist') await loadChecklist();
+    setRefreshing(false);
+  }, [loadDaily, loadChecklist, activeTab]);
+
+  const toggleTask = useCallback(async (taskId: string) => {
+    const next = !completed[taskId];
+    setCompleted((prev) => ({ ...prev, [taskId]: next }));
+    await persistCompleted(taskId, next);
+  }, [completed]);
+
+  const updateNote = useCallback(async (taskId: string, text: string) => {
+    setNotes((prev) => ({ ...prev, [taskId]: text }));
+    await persistNote(taskId, text);
+  }, []);
+
+  const toggleStage = (stageId: string) => {
+    setExpandedStages((prev) => {
+      const next = new Set(prev);
+      if (next.has(stageId)) next.delete(stageId);
+      else next.add(stageId);
+      return next;
     });
-    return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
-                    <MaterialIcons name="arrow-back" size={24} color={COLORS.slate900} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Wedding Checklist</Text>
-                <TouchableOpacity style={styles.headerButton}>
-                    <MaterialIcons name="more-vert" size={24} color={COLORS.slate900} />
-                </TouchableOpacity>
+  };
+
+  const handleAddMission = useCallback(async () => {
+    const title = newMissionTitle.trim();
+    if (!title) return;
+    const task = await addCustomTask(title, newMissionStageId);
+    setCustomTasks((prev) => [...prev, task]);
+    setNewMissionTitle('');
+    setAddMissionVisible(false);
+  }, [newMissionTitle, newMissionStageId]);
+
+  const handleDeleteMission = useCallback(async (id: string) => {
+    await deleteCustomTask(id);
+    setCustomTasks((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const groups = getTasksByStage();
+  const allPredefinedIds = groups.flatMap((g) => g.tasks.map((t) => t.id));
+  const allTaskIds = [...allPredefinedIds, ...customTasks.map((t) => t.id)];
+  const completedCount = allTaskIds.filter((id) => completed[id]).length;
+  const totalTasks = allTaskIds.length;
+  const progressPct = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+
+  const openAddMission = (stageId: string) => {
+    setNewMissionStageId(stageId);
+    setNewMissionTitle('');
+    setAddMissionVisible(true);
+  };
+  const relevantStageId = getStageForDaysToGo(daysToGo);
+
+  const emotionalHeader =
+    todaysCard?.type === 'tip'
+      ? "Today's little win"
+      : todaysCard?.type === 'question'
+        ? 'Question for you two'
+        : "Today's feeling";
+  const iconBadge = todaysCard?.type === 'tip' ? '💡' : todaysCard?.type === 'question' ? '💬' : '❤️';
+  const microContext =
+    daysToGo <= 7 && daysToGo > 0
+      ? 'This week is getting real 💍'
+      : daysToGo > 0
+        ? `${daysToGo} days to go`
+        : 'Your day is here 💒';
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Agenda</Text>
+      </View>
+
+      <View style={styles.segmented}>
+        <TouchableOpacity
+          style={[styles.segment, activeTab === 'today' && styles.segmentActive]}
+          onPress={() => setActiveTab('today')}
+        >
+          <Text style={[styles.segmentText, activeTab === 'today' && styles.segmentTextActive]}>
+            Today
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.segment, activeTab === 'checklist' && styles.segmentActive]}
+          onPress={() => setActiveTab('checklist')}
+        >
+          <Text style={[styles.segmentText, activeTab === 'checklist' && styles.segmentTextActive]}>
+            Checklist
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
+        }
+      >
+        {activeTab === 'today' && (
+          <View style={styles.todayContent}>
+            {loadingDaily ? (
+              <Text style={styles.muted}>Loading…</Text>
+            ) : todaysCard ? (
+              <>
+                <Text style={styles.microContext}>{microContext}</Text>
+                <Text style={styles.emotionalHeader}>{emotionalHeader}</Text>
+                <View style={styles.dailyCardWrap}>
+                  <LinearGradient
+                    colors={['rgba(255,240,245,0.95)', 'rgba(255,248,250,0.9)', 'rgba(248,246,246,0.95)']}
+                    style={styles.dailyCard}
+                  >
+                    <View style={styles.dailyCardInner}>
+                      <View style={styles.iconBadge}>
+                        <Text style={styles.iconBadgeText}>{iconBadge}</Text>
+                      </View>
+                      <Text style={styles.cardContent}>{todaysCard.content}</Text>
+                    </View>
+                  </LinearGradient>
+                </View>
+                {milestoneHint && (
+                  <Text style={styles.milestoneHint}>{milestoneHint}</Text>
+                )}
+              </>
+            ) : (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptySub}>No card for today.</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {activeTab === 'checklist' && (
+          <View style={styles.checklistContent}>
+            <View style={styles.progressCard}>
+              <View style={styles.progressRow}>
+                <Text style={styles.progressLabel}>Your progress</Text>
+                <Text style={styles.progressCount}>
+                  {completedCount} of {totalTasks} tasks
+                </Text>
+              </View>
+              <View style={styles.progressBarBg}>
+                <View style={[styles.progressBarFill, { width: `${progressPct}%` }]} />
+              </View>
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                {/* Progress Section */}
-                <View style={styles.progressCard}>
-                    <View style={styles.progressHeader}>
-                        <View>
-                            <Text style={styles.progressPercentage}>{progressPercentage}% Complete</Text>
-                            <Text style={styles.progressSubtitle}>{completedTasksCount} of {totalTasksCount} tasks finished</Text>
-                        </View>
-                        <Text style={styles.progressLabel}>YOUR JOURNEY</Text>
-                    </View>
-                    <View style={styles.progressBarBackground}>
-                        <View style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} />
-                    </View>
-                    <Text style={styles.progressQuote}>"True love stories never have endings, but they do have great plans."</Text>
-                </View>
-
-                {/* Filter Tabs */}
-                <View style={styles.tabsContainer}>
-                    <TouchableOpacity style={[styles.tab, filter === 'all' && styles.tabActive]} onPress={() => setFilter('all')}>
-                        <Text style={[styles.tabText, filter === 'all' && styles.tabTextActive]}>All Tasks</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.tab, filter === 'pending' && styles.tabActive]} onPress={() => setFilter('pending')}>
-                        <Text style={[styles.tabText, filter === 'pending' && styles.tabTextActive]}>Pending</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.tab, filter === 'completed' && styles.tabActive]} onPress={() => setFilter('completed')}>
-                        <Text style={[styles.tabText, filter === 'completed' && styles.tabTextActive]}>Completed</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Task List */}
-                <View style={styles.taskList}>
-                    {/* Category */}
-                    <View style={styles.categoryHeader}>
-                        <MaterialIcons name="calendar-today" size={16} color={COLORS.primary} />
-                        <Text style={styles.categoryTitle}>12 Months to Go</Text>
-                    </View>
-
-                    <View style={styles.taskItems}>
-                        {filteredTasks.length === 0 ? (
-                            <Text style={styles.emptyText}>No tasks found in this category.</Text>
-                        ) : (
-                            filteredTasks.map((task) => (
-                                <View key={task.id} style={[styles.taskCard, !task.completed && task.priority && styles.taskCardActive]}>
-                                    <View style={styles.taskCheckWrapper}>
-                                        <TouchableOpacity
-                                            style={task.completed ? styles.taskCheckCompleted : (!task.completed && task.priority ? styles.taskCheckActive : styles.taskCheckRegular)}
-                                            onPress={() => toggleTask(task.id)}
-                                        >
-                                            {task.completed && <MaterialIcons name="check" size={14} color={COLORS.white} />}
-                                        </TouchableOpacity>
-                                    </View>
-                                    <View style={styles.taskContent}>
-                                        <Text style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}>{task.title}</Text>
-                                        <View style={styles.taskMeta}>
-                                            {task.date && (
-                                                <View style={styles.taskDate}>
-                                                    <MaterialIcons name="event" size={12} color={task.completed ? COLORS.slate400 : (task.priority ? COLORS.primary : COLORS.slate500)} />
-                                                    <Text style={[styles.taskDateText, !task.completed && task.priority && { color: COLORS.primary }, task.completed && { color: COLORS.slate400 }]}>
-                                                        {task.date}
-                                                    </Text>
-                                                </View>
-                                            )}
-                                            {task.completed ? (
-                                                <View style={styles.tagCompleted}>
-                                                    <Text style={styles.tagCompletedText}>DONE</Text>
-                                                </View>
-                                            ) : (
-                                                task.priority && (
-                                                    <View style={styles.tagPriority}>
-                                                        <Text style={styles.tagPriorityText}>PRIORITY</Text>
-                                                    </View>
-                                                )
-                                            )}
-                                        </View>
-                                    </View>
-                                    {!task.completed && task.priority && <MaterialIcons name="chevron-right" size={24} color={COLORS.slate300} />}
-                                </View>
-                            ))
-                        )}
-                    </View>
-                </View>
-            </ScrollView>
-
-            {/* FAB */}
-            <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
-                <MaterialIcons name="add" size={28} color={COLORS.white} />
-            </TouchableOpacity>
-
-            {/* Add Task Modal */}
-            <Modal
-                visible={modalVisible}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={styles.modalOverlay}
-                >
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>New Task</Text>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                <MaterialIcons name="close" size={24} color={COLORS.slate400} />
-                            </TouchableOpacity>
-                        </View>
-
-                        <TextInput
-                            style={styles.modalInput}
-                            placeholder="e.g. Taste testing wedding cakes"
-                            value={newTaskText}
-                            onChangeText={setNewTaskText}
-                            placeholderTextColor={COLORS.slate400}
-                            autoFocus
-                            onSubmitEditing={handleAddTask}
-                            returnKeyType="done"
+            {groups.map(({ stage, tasks: predefinedTasks }) => {
+              const isExpanded = expandedStages.has(stage.id);
+              const isRelevant = stage.id === relevantStageId;
+              const customForStage = customTasks.filter((ct) => ct.stageId === stage.id);
+              const allTasks: { id: string; title: string; suggestedTiming: string; isCustom: boolean }[] = [
+                ...predefinedTasks.map((t) => ({ id: t.id, title: t.title, suggestedTiming: t.suggestedTiming, isCustom: false })),
+                ...customForStage.map((t) => ({ id: t.id, title: t.title, suggestedTiming: '', isCustom: true })),
+              ];
+              return (
+                <View key={stage.id} style={styles.stageBlock}>
+                  <TouchableOpacity
+                    style={[styles.stageHeader, isRelevant && styles.stageHeaderRelevant]}
+                    onPress={() => toggleStage(stage.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.stageLabel}>{stage.label}</Text>
+                    <MaterialIcons
+                      name={isExpanded ? 'expand-less' : 'expand-more'}
+                      size={24}
+                      color={COLORS.slate600}
+                    />
+                  </TouchableOpacity>
+                  {isExpanded && (
+                    <>
+                      {allTasks.map((task) => (
+                        <ChecklistRow
+                          key={task.id}
+                          task={{ id: task.id, title: task.title, stageId: stage.id, suggestedTiming: task.suggestedTiming }}
+                          completed={!!completed[task.id]}
+                          note={notes[task.id] ?? ''}
+                          onToggle={() => toggleTask(task.id)}
+                          onNoteChange={(text) => updateNote(task.id, text)}
+                          onDelete={task.isCustom ? () => handleDeleteMission(task.id) : undefined}
                         />
+                      ))}
+                      <TouchableOpacity style={styles.addMissionButton} onPress={() => openAddMission(stage.id)}>
+                        <MaterialIcons name="add" size={22} color={COLORS.primary} />
+                        <Text style={styles.addMissionText}>Add mission to this timeline</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
+              );
+            })}
 
-                        <TouchableOpacity
-                            style={[styles.modalButton, !newTaskText.trim() && styles.modalButtonDisabled]}
-                            onPress={handleAddTask}
-                            disabled={!newTaskText.trim()}
-                        >
-                            <Text style={styles.modalButtonText}>Add Task</Text>
-                        </TouchableOpacity>
-                    </View>
-                </KeyboardAvoidingView>
-            </Modal>
+            <View style={styles.premiumPlaceholder}>
+              <Text style={styles.premiumPlaceholderText}>
+                Premium: smart reminders · smart ordering
+              </Text>
+            </View>
+          </View>
+        )}
+      </ScrollView>
 
-        </SafeAreaView>
-    );
+      <Modal
+        visible={addMissionVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAddMissionVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setAddMissionVisible(false)}
+          />
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Add mission</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="e.g. Order thank-you cards"
+              placeholderTextColor={COLORS.slate400}
+              value={newMissionTitle}
+              onChangeText={setNewMissionTitle}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handleAddMission}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalCancel} onPress={() => setAddMissionVisible(false)}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalAdd, !newMissionTitle.trim() && styles.modalAddDisabled]}
+                onPress={handleAddMission}
+                disabled={!newMissionTitle.trim()}
+              >
+                <Text style={styles.modalAddText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
+function ChecklistRow({
+  task,
+  completed,
+  note,
+  onToggle,
+  onNoteChange,
+  onDelete,
+}: {
+  task: ChecklistTask & { suggestedTiming?: string };
+  completed: boolean;
+  note: string;
+  onToggle: () => void;
+  onNoteChange: (text: string) => void;
+  onDelete?: () => void;
+}) {
+  const [noteFocused, setNoteFocused] = useState(false);
+  return (
+    <View style={styles.taskRow}>
+      <TouchableOpacity
+        style={[styles.taskCheck, completed && styles.taskCheckCompleted]}
+        onPress={onToggle}
+      >
+        {completed && <MaterialIcons name="check" size={14} color={COLORS.white} />}
+      </TouchableOpacity>
+      <View style={styles.taskBody}>
+        <Text style={[styles.taskTitle, completed && styles.taskTitleCompleted]}>{task.title}</Text>
+        {task.suggestedTiming ? (
+          <Text style={styles.taskTiming}>{task.suggestedTiming}</Text>
+        ) : null}
+        <TextInput
+          style={[styles.taskNotes, noteFocused && styles.taskNotesFocused]}
+          placeholder="Notes"
+          placeholderTextColor={COLORS.slate400}
+          value={note}
+          onChangeText={onNoteChange}
+          onFocus={() => setNoteFocused(true)}
+          onBlur={() => setNoteFocused(false)}
+          multiline
+        />
+      </View>
+      {onDelete ? (
+        <TouchableOpacity style={styles.taskDelete} onPress={onDelete} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <MaterialIcons name="delete-outline" size={22} color={COLORS.slate400} />
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: COLORS.backgroundLight,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: SPACING.m,
-        paddingVertical: SPACING.m,
-        backgroundColor: 'rgba(248, 246, 246, 0.8)',
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.primary + '1A',
-        zIndex: 10,
-    },
-    headerButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    headerTitle: {
-        fontFamily: FONTS.displayBold,
-        fontSize: 18,
-        color: COLORS.slate900,
-    },
-    scrollContent: {
-        padding: SPACING.m,
-        paddingBottom: 100, // Space for Bottom Nav and FAB
-    },
-    progressCard: {
-        backgroundColor: COLORS.white,
-        borderRadius: 16,
-        padding: SPACING.l,
-        marginBottom: SPACING.l,
-        borderWidth: 1,
-        borderColor: COLORS.primary + '0D',
-        ...SHADOWS.sm,
-    },
-    progressHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        marginBottom: SPACING.m,
-    },
-    progressPercentage: {
-        fontFamily: FONTS.displayBold,
-        fontSize: 24,
-        color: COLORS.primary,
-    },
-    progressSubtitle: {
-        fontFamily: FONTS.sans,
-        fontSize: 14,
-        color: COLORS.slate500,
-        marginTop: 4,
-    },
-    progressLabel: {
-        fontFamily: FONTS.sansSemiBold,
-        fontSize: 10,
-        color: COLORS.slate400,
-        letterSpacing: 1.5,
-    },
-    progressBarBackground: {
-        height: 12,
-        backgroundColor: COLORS.primary + '1A',
-        borderRadius: 6,
-        overflow: 'hidden',
-    },
-    progressBarFill: {
-        height: '100%',
-        backgroundColor: COLORS.primary,
-        borderRadius: 6,
-    },
-    progressQuote: {
-        fontFamily: FONTS.sans,
-        fontStyle: 'italic',
-        fontSize: 14,
-        color: COLORS.slate600,
-        marginTop: SPACING.m,
-    },
-    tabsContainer: {
-        flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.primary + '1A',
-        marginBottom: SPACING.l,
-    },
-    tab: {
-        flex: 1,
-        paddingVertical: 12,
-        alignItems: 'center',
-    },
-    tabActive: {
-        borderBottomWidth: 2,
-        borderBottomColor: COLORS.primary,
-    },
-    tabText: {
-        fontFamily: FONTS.sansMedium,
-        fontSize: 14,
-        color: COLORS.slate500,
-    },
-    tabTextActive: {
-        fontFamily: FONTS.sansSemiBold,
-        color: COLORS.primary,
-    },
-    taskList: {
-        gap: SPACING.l,
-    },
-    categoryHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: SPACING.s,
-        marginBottom: SPACING.s,
-    },
-    categoryTitle: {
-        fontFamily: FONTS.displayBold,
-        fontSize: 18,
-        color: COLORS.slate900,
-        letterSpacing: -0.5,
-    },
-    taskItems: {
-        gap: SPACING.s,
-    },
-    emptyText: {
-        fontFamily: FONTS.sans,
-        fontSize: 14,
-        color: COLORS.slate400,
-        textAlign: 'center',
-        padding: SPACING.xl,
-    },
-    taskCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: COLORS.white,
-        padding: SPACING.m,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: COLORS.primary + '0D',
-        ...SHADOWS.sm,
-    },
-    taskCardActive: {
-        borderLeftWidth: 4,
-        borderLeftColor: COLORS.primary,
-    },
-    taskCheckWrapper: {
-        marginRight: SPACING.m,
-    },
-    taskCheckCompleted: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: COLORS.primary,
-        borderWidth: 2,
-        borderColor: COLORS.primary,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    taskCheckActive: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: COLORS.primary,
-    },
-    taskCheckRegular: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: COLORS.slate300,
-    },
-    taskContent: {
-        flex: 1,
-    },
-    taskTitle: {
-        fontFamily: FONTS.displayBold,
-        fontSize: 16,
-        color: COLORS.slate900,
-    },
-    taskTitleCompleted: {
-        color: COLORS.slate400,
-        textDecorationLine: 'line-through',
-    },
-    taskMeta: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: SPACING.s,
-        marginTop: 4,
-    },
-    taskDate: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    taskDateText: {
-        fontFamily: FONTS.sans,
-        fontSize: 12,
-        color: COLORS.slate400,
-    },
-    tagCompleted: {
-        backgroundColor: COLORS.slate100,
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 12,
-    },
-    tagCompletedText: {
-        fontFamily: FONTS.sansSemiBold,
-        fontSize: 10,
-        color: COLORS.slate400,
-    },
-    tagPriority: {
-        backgroundColor: COLORS.primary + '1A',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 12,
-    },
-    tagPriorityText: {
-        fontFamily: FONTS.sansSemiBold,
-        fontSize: 10,
-        color: COLORS.primary,
-    },
-    fab: {
-        position: 'absolute',
-        bottom: 96,
-        right: 24,
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: COLORS.primary,
-        alignItems: 'center',
-        justifyContent: 'center',
-        ...SHADOWS.lg,
-        shadowColor: COLORS.primary,
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: COLORS.white,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        padding: SPACING.l,
-        paddingBottom: Platform.OS === 'ios' ? 40 : SPACING.l,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: SPACING.l,
-    },
-    modalTitle: {
-        fontFamily: FONTS.displayBold,
-        fontSize: 20,
-        color: COLORS.slate900,
-    },
-    modalInput: {
-        fontFamily: FONTS.sans,
-        fontSize: 16,
-        color: COLORS.slate900,
-        borderWidth: 1,
-        borderColor: COLORS.slate200,
-        borderRadius: 12,
-        padding: SPACING.m,
-        marginBottom: SPACING.l,
-        backgroundColor: '#f8f9fa',
-    },
-    modalButton: {
-        backgroundColor: COLORS.primary,
-        padding: SPACING.m,
-        borderRadius: 16,
-        alignItems: 'center',
-    },
-    modalButtonDisabled: {
-        backgroundColor: COLORS.slate300,
-    },
-    modalButtonText: {
-        fontFamily: FONTS.displayBold,
-        fontSize: 16,
-        color: COLORS.white,
-    }
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.backgroundLight,
+  },
+  header: {
+    paddingHorizontal: SPACING.m,
+    paddingVertical: SPACING.s,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.slate200,
+  },
+  headerTitle: {
+    fontFamily: FONTS.displayBold,
+    fontSize: 20,
+    color: COLORS.slate900,
+  },
+  segmented: {
+    flexDirection: 'row',
+    marginHorizontal: SPACING.m,
+    marginTop: SPACING.m,
+    backgroundColor: COLORS.slate100,
+    borderRadius: 12,
+    padding: 4,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  segmentActive: {
+    backgroundColor: COLORS.white,
+    ...SHADOWS.sm,
+  },
+  segmentText: {
+    fontFamily: FONTS.sansMedium,
+    fontSize: 14,
+    color: COLORS.slate500,
+  },
+  segmentTextActive: {
+    fontFamily: FONTS.sansSemiBold,
+    color: COLORS.primary,
+  },
+  scrollContent: {
+    padding: SPACING.m,
+    paddingBottom: 100,
+  },
+  todayContent: {
+    marginTop: SPACING.l,
+  },
+  muted: {
+    fontFamily: FONTS.sans,
+    fontSize: 14,
+    color: COLORS.slate400,
+    textAlign: 'center',
+    padding: SPACING.xl,
+  },
+  microContext: {
+    fontFamily: FONTS.sans,
+    fontSize: 13,
+    color: COLORS.slate500,
+    marginBottom: SPACING.xs,
+  },
+  emotionalHeader: {
+    fontFamily: FONTS.displayBold,
+    fontSize: 20,
+    color: COLORS.slate800,
+    marginBottom: SPACING.m,
+  },
+  dailyCardWrap: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    ...SHADOWS.sm,
+  },
+  dailyCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(238, 43, 91, 0.08)',
+  },
+  dailyCardInner: {
+    padding: SPACING.xl,
+    paddingTop: SPACING.l,
+  },
+  iconBadge: {
+    alignSelf: 'flex-start',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.l,
+    ...SHADOWS.sm,
+  },
+  iconBadgeText: {
+    fontSize: 22,
+  },
+  cardContent: {
+    fontFamily: FONTS.sans,
+    fontSize: 19,
+    color: COLORS.slate800,
+    lineHeight: 30,
+    letterSpacing: 0.2,
+  },
+  emptyCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: SPACING.l,
+    borderWidth: 1,
+    borderColor: COLORS.slate200,
+  },
+  emptySub: {
+    fontFamily: FONTS.sans,
+    fontSize: 14,
+    color: COLORS.slate500,
+  },
+  milestoneHint: {
+    fontFamily: FONTS.sans,
+    fontSize: 12,
+    color: COLORS.slate500,
+    marginTop: SPACING.m,
+    textAlign: 'center',
+  },
+  checklistContent: {
+    marginTop: SPACING.l,
+    gap: SPACING.s,
+  },
+  progressCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    padding: SPACING.m,
+    marginBottom: SPACING.m,
+    borderWidth: 1,
+    borderColor: COLORS.slate200,
+    ...SHADOWS.sm,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.s,
+  },
+  progressLabel: {
+    fontFamily: FONTS.sansSemiBold,
+    fontSize: 14,
+    color: COLORS.slate700,
+  },
+  progressCount: {
+    fontFamily: FONTS.sans,
+    fontSize: 13,
+    color: COLORS.slate500,
+  },
+  progressBarBg: {
+    height: 8,
+    backgroundColor: COLORS.slate100,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 4,
+  },
+  stageBlock: {
+    marginBottom: SPACING.m,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.slate200,
+    overflow: 'hidden',
+    ...SHADOWS.sm,
+  },
+  stageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: SPACING.m,
+  },
+  stageHeaderRelevant: {
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+  },
+  stageLabel: {
+    fontFamily: FONTS.displayBold,
+    fontSize: 16,
+    color: COLORS.slate900,
+  },
+  addMissionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    padding: SPACING.m,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.slate100,
+  },
+  addMissionText: {
+    fontFamily: FONTS.sansSemiBold,
+    fontSize: 15,
+    color: COLORS.primary,
+  },
+  taskRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: SPACING.m,
+    paddingVertical: SPACING.s,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.slate100,
+  },
+  taskDelete: {
+    padding: SPACING.xs,
+    marginLeft: SPACING.xs,
+    marginTop: 2,
+  },
+  taskCheck: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.slate300,
+    marginRight: SPACING.m,
+    marginTop: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskCheckCompleted: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  taskBody: {
+    flex: 1,
+  },
+  taskTitle: {
+    fontFamily: FONTS.sansSemiBold,
+    fontSize: 15,
+    color: COLORS.slate900,
+  },
+  taskTitleCompleted: {
+    color: COLORS.slate400,
+    textDecorationLine: 'line-through',
+  },
+  taskTiming: {
+    fontFamily: FONTS.sans,
+    fontSize: 12,
+    color: COLORS.slate500,
+    marginTop: 2,
+  },
+  taskNotes: {
+    fontFamily: FONTS.sans,
+    fontSize: 13,
+    color: COLORS.slate600,
+    marginTop: 4,
+    padding: 6,
+    backgroundColor: COLORS.slate50,
+    borderRadius: 8,
+    minHeight: 36,
+  },
+  taskNotesFocused: {
+    borderWidth: 1,
+    borderColor: COLORS.primary + '40',
+  },
+  premiumPlaceholder: {
+    marginTop: SPACING.l,
+    paddingVertical: SPACING.s,
+    alignItems: 'center',
+  },
+  premiumPlaceholderText: {
+    fontFamily: FONTS.sans,
+    fontSize: 12,
+    color: COLORS.slate400,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  modalBox: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: SPACING.l,
+    paddingBottom: Platform.OS === 'ios' ? 40 : SPACING.l,
+  },
+  modalTitle: {
+    fontFamily: FONTS.displayBold,
+    fontSize: 18,
+    color: COLORS.slate900,
+    marginBottom: SPACING.m,
+  },
+  modalInput: {
+    fontFamily: FONTS.sans,
+    fontSize: 16,
+    color: COLORS.slate900,
+    borderWidth: 1,
+    borderColor: COLORS.slate200,
+    borderRadius: 12,
+    padding: SPACING.m,
+    marginBottom: SPACING.m,
+    backgroundColor: COLORS.slate50,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: SPACING.m,
+    justifyContent: 'flex-end',
+  },
+  modalCancel: {
+    paddingVertical: SPACING.s,
+    paddingHorizontal: SPACING.m,
+  },
+  modalCancelText: {
+    fontFamily: FONTS.sans,
+    fontSize: 16,
+    color: COLORS.slate500,
+  },
+  modalAdd: {
+    paddingVertical: SPACING.s,
+    paddingHorizontal: SPACING.l,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+  },
+  modalAddDisabled: {
+    backgroundColor: COLORS.slate300,
+  },
+  modalAddText: {
+    fontFamily: FONTS.sansSemiBold,
+    fontSize: 16,
+    color: COLORS.white,
+  },
 });

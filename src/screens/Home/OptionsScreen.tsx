@@ -1,8 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert, PanResponder } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import { useUserStore } from '../../store/useUserStore';
+
+const HOME_TEXT_COLOR_OPTIONS: { label: string; value: string }[] = [
+    { label: 'White', value: '#ffffff' },
+    { label: 'Cream', value: '#FFF8E7' },
+    { label: 'Gold', value: '#D4AF37' },
+    { label: 'Rose', value: '#E8B4B8' },
+    { label: 'Black', value: '#1a1a1a' },
+];
 
 export default function OptionsScreen({ navigation }: any) {
     const {
@@ -12,7 +21,10 @@ export default function OptionsScreen({ navigation }: any) {
         dailySentenceEnabled,
         setDailySentenceEnabled,
         language,
-        setLanguage
+        setLanguage,
+        setBaseImage,
+        homeTextColor,
+        setHomeTextColor,
     } = useUserStore();
 
     const [activeTab, setActiveTab] = useState<'settings' | 'design'>('design');
@@ -30,6 +42,23 @@ export default function OptionsScreen({ navigation }: any) {
         const currentIndex = langs.indexOf(language || 'en');
         const nextIndex = (currentIndex + 1) % langs.length;
         setLanguage(langs[nextIndex]);
+    };
+
+    const pickHomePhoto = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission needed', 'Allow access to your photos to change the home page image.');
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: false,
+            quality: 1,
+        });
+        if (!result.canceled) {
+            setBaseImage(result.assets[0].uri);
+            Alert.alert('Done', 'Home page photo updated.');
+        }
     };
 
     const panResponder = useRef(
@@ -76,6 +105,29 @@ export default function OptionsScreen({ navigation }: any) {
             <ScrollView contentContainerStyle={styles.content}>
                 {activeTab === 'design' && (
                     <View style={styles.section}>
+                        <TouchableOpacity style={styles.menuButton} onPress={pickHomePhoto}>
+                            <Text style={styles.menuButtonText}>🖼️ Replace home page photo</Text>
+                        </TouchableOpacity>
+
+                        <Text style={[styles.sectionSubtitle, { marginTop: SPACING.m }]}>Home page text color</Text>
+                        <View style={styles.colorRow}>
+                            {HOME_TEXT_COLOR_OPTIONS.map(({ label, value }) => (
+                                <View key={value} style={styles.colorOption}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.colorChip,
+                                            { backgroundColor: value },
+                                            homeTextColor === value && styles.colorChipActive,
+                                        ]}
+                                        onPress={() => setHomeTextColor(value)}
+                                    >
+                                        {homeTextColor === value && <Text style={styles.colorChipCheck}>✓</Text>}
+                                    </TouchableOpacity>
+                                    <Text style={styles.colorLabel}>{label}</Text>
+                                </View>
+                            ))}
+                        </View>
+
                         <TouchableOpacity style={styles.menuButton} onPress={handleChangeStyle}>
                             <Text style={styles.menuButtonText}>✨ Change Theme Style</Text>
                         </TouchableOpacity>
@@ -132,7 +184,7 @@ export default function OptionsScreen({ navigation }: any) {
                             <Text style={styles.menuButtonText}>💎 Restore Purchase</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.menuButton} onPress={() => Alert.alert('Notifications', 'Notification settings coming soon.')}>
+                        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('Notifications')}>
                             <Text style={styles.menuButtonText}>🔔 Notifications</Text>
                         </TouchableOpacity>
 
@@ -224,6 +276,43 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.s,
         textTransform: 'uppercase',
         letterSpacing: 1,
+    },
+    colorRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: SPACING.m,
+    },
+    colorOption: {
+        alignItems: 'center',
+        minWidth: 44,
+    },
+    colorChip: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: 'transparent',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: SPACING.xs,
+    },
+    colorChipActive: {
+        borderColor: COLORS.primary,
+        borderWidth: 3,
+    },
+    colorChipCheck: {
+        color: COLORS.white,
+        fontSize: 18,
+        fontFamily: FONTS.sansSemiBold,
+        textShadowColor: 'rgba(0,0,0,0.8)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+    },
+    colorLabel: {
+        fontFamily: FONTS.sans,
+        fontSize: 12,
+        color: COLORS.slate500,
+        textAlign: 'center',
     },
     positionButtons: {
         flexDirection: 'row',

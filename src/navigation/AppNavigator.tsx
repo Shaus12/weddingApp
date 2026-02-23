@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { navigationRef } from './navigationRef';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SHADOWS } from '../constants/theme';
@@ -12,12 +13,14 @@ import StyleSelectionScreen from '../screens/Onboarding/StyleSelectionScreen';
 import QuestionnaireScreen from '../screens/Onboarding/QuestionnaireScreen';
 import MagicScreen from '../screens/Onboarding/MagicScreen';
 import SaveTheDateScreen from '../screens/Home/SaveTheDateScreen';
+import SaveTheDateEditDetailsScreen from '../screens/Home/SaveTheDateEditDetailsScreen';
 import GalleryScreen from '../screens/Home/GalleryScreen';
 import LetterGeneratorScreen from '../screens/Home/LetterGeneratorScreen';
 import PaywallScreen from '../screens/Paywall/PaywallScreen';
 import RemindersScreen from '../screens/Home/RemindersScreen';
 import OptionsScreen from '../screens/Home/OptionsScreen';
 import DailyTipsScreen from '../screens/Home/DailyTipsScreen';
+import NotificationsScreen from '../screens/Home/NotificationsScreen';
 import { useUserStore } from '../store/useUserStore';
 import { Platform } from 'react-native';
 
@@ -69,7 +72,7 @@ export default function AppNavigator() {
     const { isOnboardingCompleted } = useUserStore();
 
     return (
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef}>
             <Stack.Navigator
                 screenOptions={{ headerShown: false }}
                 initialRouteName={isOnboardingCompleted ? 'MainTabs' : 'Welcome'}
@@ -86,12 +89,22 @@ export default function AppNavigator() {
 
                 {/* Modals/Deep Screens over Tabs */}
                 <Stack.Screen name="Paywall" component={PaywallScreen} />
+                <Stack.Screen
+                    name="SaveTheDateEditDetails"
+                    component={SaveTheDateEditDetailsScreen}
+                    options={{ animation: 'slide_from_bottom' }}
+                />
                 <Stack.Screen name="Gallery" component={GalleryScreen} />
                 <Stack.Screen name="LetterGenerator" component={LetterGeneratorScreen} />
                 <Stack.Screen
                     name="DailyTips"
                     component={DailyTipsScreen}
                     options={{ animation: 'slide_from_right' }}
+                />
+                <Stack.Screen
+                    name="Notifications"
+                    component={NotificationsScreen}
+                    options={{ animation: 'slide_from_bottom' }}
                 />
             </Stack.Navigator>
         </NavigationContainer>

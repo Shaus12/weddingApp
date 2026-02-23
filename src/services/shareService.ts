@@ -39,22 +39,27 @@ export async function captureShareCard(
 }
 
 // ---------- Instagram Story ----------
-export async function shareToInstagram(fileUri: string): Promise<void> {
+/** Returns false if app not installed or deep link failed (caller should show "try More… or Save"). */
+export async function shareToInstagram(fileUri: string): Promise<boolean> {
     if (Platform.OS === 'ios') {
-        const igScheme = 'instagram-stories://share?source_application=com.eternalglow.app';
         const canOpen = await Linking.canOpenURL('instagram-stories://share');
         if (canOpen) {
-            // Use native module pasteboard approach via share
-            await shareGeneral(fileUri, '');
-            return;
+            try {
+                await shareGeneral(fileUri, '');
+                return true;
+            } catch {
+                await shareGeneral(fileUri, `${APP_LINK}`);
+                return false;
+            }
         }
     }
-    // Fallback: general share
     await shareGeneral(fileUri, `${APP_LINK}`);
+    return false;
 }
 
 // ---------- WhatsApp ----------
-export async function shareToWhatsApp(fileUri: string, caption: string): Promise<void> {
+/** Returns false if app not available or share failed (caller should show "try More… or Save"). */
+export async function shareToWhatsApp(fileUri: string, caption: string): Promise<boolean> {
     try {
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
@@ -63,12 +68,13 @@ export async function shareToWhatsApp(fileUri: string, caption: string): Promise
                 dialogTitle: caption,
                 UTI: 'public.png',
             });
-        } else {
-            await shareGeneral(fileUri, caption);
+            return true;
         }
     } catch {
-        await shareGeneral(fileUri, caption);
+        // fall through to fallback
     }
+    await shareGeneral(fileUri, caption);
+    return false;
 }
 
 // ---------- Save to Camera Roll ----------
@@ -98,4 +104,76 @@ export async function shareGeneral(fileUri: string, caption: string): Promise<vo
 
 export function buildCaption(daysLeft: number): string {
     return `${daysLeft} days to go 💍 Made with ${APP_NAME} ${APP_LINK}`;
+}
+
+// ---------- Save The Date poster cache key ----------
+export function buildSaveTheDatePosterCacheKey(partner1: string, partner2: string): string {
+    return `save_the_date_${partner1}_${partner2}.png`;
+}
+
+// ---------- Video sharing (Save The Date video: 1080x1920 mp4) ----------
+const VIDEO_MIME = 'video/mp4';
+const VIDEO_UTI = 'public.movie';
+
+/** Returns false if Instagram not installed or deep link failed (caller should show "try More… or Save"). */
+export async function shareToInstagramVideo(videoUri: string): Promise<boolean> {
+    if (Platform.OS === 'ios') {
+        const canOpen = await Linking.canOpenURL('instagram-stories://share');
+        if (canOpen) {
+            try {
+                await shareGeneralVideo(videoUri, '');
+                return true;
+            } catch {
+                await shareGeneralVideo(videoUri, APP_LINK);
+                return false;
+            }
+        }
+    }
+    await shareGeneralVideo(videoUri, APP_LINK);
+    return false;
+}
+
+/** Returns false if WhatsApp not available or share failed (caller should show "try More… or Save"). */
+export async function shareToWhatsAppVideo(videoUri: string, caption: string): Promise<boolean> {
+    try {
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+            await Sharing.shareAsync(videoUri, {
+                mimeType: VIDEO_MIME,
+                dialogTitle: caption,
+                UTI: VIDEO_UTI,
+            });
+            return true;
+        }
+    } catch {
+        // fall through to fallback
+    }
+    await shareGeneralVideo(videoUri, caption);
+    return false;
+}
+
+export async function saveVideo(videoUri: string): Promise<boolean> {
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Allow photo access to save your video.');
+        return false;
+    }
+    await MediaLibrary.saveToLibraryAsync(videoUri);
+    return true;
+}
+
+export async function shareGeneralVideo(videoUri: string, caption: string): Promise<void> {
+    const canShare = await Sharing.isAvailableAsync();
+    if (canShare) {
+        await Sharing.shareAsync(videoUri, {
+            mimeType: VIDEO_MIME,
+            UTI: VIDEO_UTI,
+        });
+    } else {
+        await Share.share({ message: caption });
+    }
+}
+
+export function buildSaveTheDateCaption(partner1: string, partner2: string, formattedDate: string): string {
+    return `Save the Date! ${partner1} & ${partner2} are getting married on ${formattedDate}. 💍 ${APP_LINK}`;
 }

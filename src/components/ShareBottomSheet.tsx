@@ -183,18 +183,6 @@ export default function ShareBottomSheet({ visible, onClose, daysLeft, navigatio
                             </View>
                         </TouchableOpacity>
 
-                        {/* Change Style */}
-                        <TouchableOpacity
-                            style={styles.actionButton}
-                            onPress={() => { close(); navigation.navigate('StyleSelection'); }}
-                        >
-                            <Text style={styles.actionEmoji}>🎨</Text>
-                            <View>
-                                <Text style={styles.actionLabel}>Change Style</Text>
-                                <Text style={styles.actionSub}>Pick a different theme for your card</Text>
-                            </View>
-                        </TouchableOpacity>
-
                         {/* Premium watermark note */}
                         {!isPremium && (
                             <TouchableOpacity

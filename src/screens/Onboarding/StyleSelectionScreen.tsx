@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, SHADOWS } from '../../constants/theme';
 import { useUserStore } from '../../store/useUserStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const STYLES = [
-    { id: 'Boho-Chic', label: 'Boho-Chic 🌿', description: 'Natural, earthy, and free-spirited.', isPremium: false },
     { id: 'Modern Minimal', label: 'Modern Minimal 🤍', description: 'Clean lines, simple, and elegant.', isPremium: false },
-    { id: 'Classic Royal', label: 'Classic Royal 👑', description: 'Timeless, luxurious, and grand.', isPremium: false },
+    { id: 'Cinematic Premium', label: 'Cinematic / Premium 🎬', description: 'Film grain, vignette, soft glow.', isPremium: false },
+    { id: 'Modern Fun', label: 'Modern / Fun ✨', description: 'Playful accent, progress ring, bolder feel.', isPremium: false },
+    { id: 'Boho-Chic', label: 'Boho-Chic 🌿', description: 'Natural, earthy, and free-spirited.', isPremium: true },
+    { id: 'Classic Royal', label: 'Classic Royal 👑', description: 'Timeless, luxurious, and grand.', isPremium: true },
     { id: 'Vintage', label: 'Vintage 🕰️', description: 'Nostalgic, warm, and romantic.', isPremium: true },
     { id: 'Rustic Charm', label: 'Rustic Charm 🪵', description: 'Cozy, woodsy, and intimate.', isPremium: true },
     { id: 'Beach Paradise', label: 'Beach Paradise 🌊', description: 'Breezy, sunny, and relaxed.', isPremium: true },
@@ -16,19 +19,25 @@ const STYLES = [
     { id: 'Urban Industrial', label: 'Urban Industrial 🏙️', description: 'Edgy, modern, and chic.', isPremium: true },
 ];
 
-export default function StyleSelectionScreen({ navigation }: any) {
-    const { setStyle, style, isOnboardingCompleted } = useUserStore();
-    const [selectedStyle, setSelectedStyle] = useState<string | null>(style);
+export default function StyleSelectionScreen({ navigation, route }: any) {
+    const { setStyle, style, setSaveTheDatePosterStyle, saveTheDatePosterStyle, isOnboardingCompleted, isPremium, isTrialActive } = useUserStore();
+    const hasAccess = isPremium || isTrialActive;
+    const forSaveTheDate = route.params?.forSaveTheDate === true;
+    const initialStyle = forSaveTheDate ? (saveTheDatePosterStyle ?? style) : style;
+    const [selectedStyle, setSelectedStyle] = useState<string | null>(initialStyle);
 
     const handleNext = () => {
         if (selectedStyle) {
-            setStyle(selectedStyle);
-            if (isOnboardingCompleted) {
-                // Return straight to home if they are just editing
-                navigation.navigate('MainTabs');
+            if (forSaveTheDate) {
+                setSaveTheDatePosterStyle(selectedStyle);
+                navigation.goBack();
             } else {
-                // Continue onboarding flow
-                navigation.navigate('Questionnaire');
+                setStyle(selectedStyle);
+                if (isOnboardingCompleted) {
+                    navigation.navigate('MainTabs');
+                } else {
+                    navigation.navigate('Questionnaire');
+                }
             }
         }
     };
@@ -40,44 +49,58 @@ export default function StyleSelectionScreen({ navigation }: any) {
                 style={StyleSheet.absoluteFillObject}
             />
             <View style={styles.header}>
-                <Text style={styles.title}>Choose Your Style ✨</Text>
-                <Text style={styles.subtitle}>What defines your wedding vibe?</Text>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <MaterialIcons name="arrow-back" size={24} color={COLORS.slate900} />
+                </TouchableOpacity>
+                <View style={styles.headerCenter}>
+                    <Text style={styles.title}>{forSaveTheDate ? 'Poster style' : 'Choose Your Style ✨'}</Text>
+                    <Text style={styles.subtitle}>
+                        {forSaveTheDate ? 'Style for your Save The Date poster only.' : 'What defines your wedding vibe?'}
+                    </Text>
+                </View>
+                <View style={styles.backButton} />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
-                {STYLES.map((item) => (
-                    <TouchableOpacity
-                        key={item.id}
-                        style={[
-                            styles.card,
-                            selectedStyle === item.id && styles.cardSelected,
-                            item.isPremium && styles.cardLocked
-                        ]}
-                        onPress={() => {
-                            if (item.isPremium) {
-                                navigation.navigate('Paywall');
-                            } else {
-                                setSelectedStyle(item.id);
-                            }
-                        }}
-                    >
-                        <View style={styles.cardHeader}>
+                {STYLES.map((item) => {
+                    const isLocked = item.isPremium && !hasAccess;
+                    return (
+                        <TouchableOpacity
+                            key={item.id}
+                            style={[
+                                styles.card,
+                                selectedStyle === item.id && styles.cardSelected,
+                                isLocked && styles.cardLocked
+                            ]}
+                            onPress={() => {
+                                if (isLocked) {
+                                    navigation.navigate('Paywall');
+                                } else {
+                                    setSelectedStyle(item.id);
+                                }
+                            }}
+                        >
+                            <View style={styles.cardHeader}>
+                                <Text style={[
+                                    styles.cardTitle,
+                                    selectedStyle === item.id && styles.cardTitleSelected,
+                                    isLocked && styles.cardTitleLocked
+                                ]}>{item.label}</Text>
+                                {isLocked && (
+                                    <View style={styles.lockBadge}>
+                                        <Text style={styles.lockIcon}>🔒</Text>
+                                        <Text style={styles.proLabel}>PRO</Text>
+                                    </View>
+                                )}
+                            </View>
                             <Text style={[
-                                styles.cardTitle,
-                                selectedStyle === item.id && styles.cardTitleSelected,
-                                item.isPremium && styles.cardTitleLocked
-                            ]}>{item.label}</Text>
-                            {item.isPremium && (
-                                <Text style={styles.lockIcon}>🔒</Text>
-                            )}
-                        </View>
-                        <Text style={[
-                            styles.cardDesc,
-                            selectedStyle === item.id && styles.cardDescSelected,
-                            item.isPremium && styles.cardDescLocked
-                        ]}>{item.description}</Text>
-                    </TouchableOpacity>
-                ))}
+                                styles.cardDesc,
+                                selectedStyle === item.id && styles.cardDescSelected,
+                                isLocked && styles.cardDescLocked
+                            ]}>{item.description}</Text>
+                        </TouchableOpacity>
+                    );
+                })}
             </ScrollView>
 
             <View style={styles.footer}>
@@ -86,7 +109,9 @@ export default function StyleSelectionScreen({ navigation }: any) {
                     onPress={handleNext}
                     disabled={!selectedStyle}
                 >
-                    <Text style={styles.buttonText}>{isOnboardingCompleted ? 'Save Style' : 'Next'}</Text>
+                    <Text style={styles.buttonText}>
+                        {forSaveTheDate ? 'Save' : isOnboardingCompleted ? 'Save Style' : 'Next'}
+                    </Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
@@ -99,7 +124,20 @@ const styles = StyleSheet.create({
         // backgroundColor: COLORS.backgroundLight, handled by LinearGradient
     },
     header: {
-        padding: SPACING.l,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: SPACING.m,
+        paddingTop: SPACING.s,
+        paddingBottom: SPACING.m,
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerCenter: {
+        flex: 1,
         alignItems: 'center',
     },
     scrollContent: {
@@ -157,8 +195,19 @@ const styles = StyleSheet.create({
     cardTitleLocked: {
         color: COLORS.slate500,
     },
+    lockBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
     lockIcon: {
-        fontSize: 16,
+        fontSize: 14,
+    },
+    proLabel: {
+        fontFamily: FONTS.sansSemiBold,
+        fontSize: 11,
+        color: COLORS.slate500,
+        letterSpacing: 0.5,
     },
     cardDesc: {
         fontFamily: FONTS.sans,

@@ -36,6 +36,23 @@ interface UserState {
     hasRecreatedToday: boolean;
     lastRecreatedDate: string | null;
 
+    // Save The Date video (Premium)
+    saveTheDateVideoStyle: string; // e.g. 'cinematic', 'elegant-invite'
+    installationId: string | null; // Device-based; set at app init from deviceIdService
+    // Save The Date card details (date, place, details coming soon)
+    saveTheDateLocation: string;
+    saveTheDateDetailsComingSoon: boolean;
+    // Save The Date poster style only (separate from home screen style)
+    saveTheDatePosterStyle: string | null;
+    // Save The Date poster image only (separate from home baseImage)
+    saveTheDateImage: string | null;
+    // Sentence under names on Save The Date card (e.g. "Are getting married")
+    saveTheDateTagline: string;
+    // One-time premium promo popup (not persisted; set when launchCount === 2)
+    showPremiumPromoPopup: boolean;
+    // Home page (countdown) preferences
+    homeTextColor: string; // hex, e.g. '#ffffff'
+
     setNames: (p1: string, p2: string) => void;
     setWeddingDate: (date: string) => void;
     setBaseImage: (uri: string) => void;
@@ -49,8 +66,18 @@ interface UserState {
 
     setDailyImage: (url: string, date: string) => void;
     startFreeTrial: () => void;
+    clearProAccess: () => void; // Dev: clear premium + trial (for paywall testing)
     setLanguage: (lang: string) => void;
     setHasRecreatedToday: (hasRecreated: boolean, date: string) => void;
+    setSaveTheDateVideoStyle: (style: string) => void;
+    setInstallationId: (id: string | null) => void;
+    setSaveTheDateLocation: (location: string) => void;
+    setSaveTheDateDetailsComingSoon: (value: boolean) => void;
+    setSaveTheDatePosterStyle: (style: string | null) => void;
+    setSaveTheDateImage: (uri: string | null) => void;
+    setSaveTheDateTagline: (tagline: string) => void;
+    setShowPremiumPromoPopup: (show: boolean) => void;
+    setHomeTextColor: (hex: string) => void;
 
     // Task actions
     toggleTask: (id: string) => void;
@@ -82,6 +109,15 @@ export const useUserStore = create<UserState>()(
             language: 'en',
             hasRecreatedToday: false,
             lastRecreatedDate: null,
+            saveTheDateVideoStyle: 'cinematic',
+            installationId: null,
+            saveTheDateLocation: '',
+            saveTheDateDetailsComingSoon: false,
+            saveTheDatePosterStyle: null,
+            saveTheDateImage: null,
+            saveTheDateTagline: 'Are getting married',
+            showPremiumPromoPopup: false,
+            homeTextColor: '#ffffff',
             tasks: [
                 { id: '1', title: 'Secure the Dream Venue', completed: false, priority: true },
                 { id: '2', title: 'Finalize Guest List', completed: false, priority: true },
@@ -102,8 +138,18 @@ export const useUserStore = create<UserState>()(
 
             setDailyImage: (url, date) => set({ dailyImageUrl: url, lastDailyImageDate: date }),
             startFreeTrial: () => set({ isTrialActive: true, trialStartDate: new Date().toISOString() }),
+            clearProAccess: () => set({ isPremium: false, isTrialActive: false, trialStartDate: null }),
             setLanguage: (lang) => set({ language: lang }),
             setHasRecreatedToday: (hasRecreated, date) => set({ hasRecreatedToday: hasRecreated, lastRecreatedDate: date }),
+            setSaveTheDateVideoStyle: (style) => set({ saveTheDateVideoStyle: style }),
+            setInstallationId: (id) => set({ installationId: id }),
+            setSaveTheDateLocation: (location) => set({ saveTheDateLocation: location }),
+            setSaveTheDateDetailsComingSoon: (value) => set({ saveTheDateDetailsComingSoon: value }),
+            setSaveTheDatePosterStyle: (style) => set({ saveTheDatePosterStyle: style }),
+            setSaveTheDateImage: (uri) => set({ saveTheDateImage: uri }),
+            setSaveTheDateTagline: (tagline) => set({ saveTheDateTagline: tagline }),
+            setShowPremiumPromoPopup: (show) => set({ showPremiumPromoPopup: show }),
+            setHomeTextColor: (hex) => set({ homeTextColor: hex }),
 
             // Tasks
             toggleTask: (id) => set((state) => ({
@@ -136,6 +182,14 @@ export const useUserStore = create<UserState>()(
                 language: 'en',
                 hasRecreatedToday: false,
                 lastRecreatedDate: null,
+                saveTheDateVideoStyle: 'cinematic',
+                installationId: null,
+                saveTheDateLocation: '',
+                saveTheDateDetailsComingSoon: false,
+                saveTheDatePosterStyle: null,
+                saveTheDateImage: null,
+                saveTheDateTagline: 'Are getting married',
+                homeTextColor: '#ffffff',
                 tasks: [
                     { id: '1', title: 'Secure the Dream Venue', completed: false, priority: true },
                     { id: '2', title: 'Finalize Guest List', completed: false, priority: true },
@@ -147,6 +201,10 @@ export const useUserStore = create<UserState>()(
         {
             name: 'user-storage',
             storage: createJSONStorage(() => AsyncStorage),
+            partialize: (state) => {
+                const { showPremiumPromoPopup, ...rest } = state;
+                return rest;
+            },
         }
     )
 );
